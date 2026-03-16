@@ -89,13 +89,14 @@ async function fetchAndApplyTitle(rawUrl) {
     setMessage(els.message, 'Enter a URL first.', 'error');
     return;
   }
+  els.title.value = '';
   setMessage(els.message, 'Fetching title...');
   try {
     const res = await fetch(`/api/fetch-title?url=${encodeURIComponent(rawUrl)}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Could not fetch title');
     els.url.value = data.url || rawUrl;
-    if (!els.title.value.trim()) els.title.value = data.title || '';
+    els.title.value = data.title || '';
     setMessage(els.message, 'Title fetched.', 'success');
   } catch (error) {
     setMessage(els.message, error.message, 'error');
@@ -136,16 +137,40 @@ els.batchImport.addEventListener('click', async () => {
   const raw = els.batchInput.value.trim();
   if (!raw) return setMessage(els.importMessage, 'Paste at least one line first.', 'error');
 
-  const links = parseBatchLines(raw).map(item => ({
-    url: item.url,
-    title: item.title,
-    date: new Date().toISOString().slice(0, 10),
-    status: 'saved',
-    tags: [],
-    notes: '',
-  }));
+  const parsed = parseBatchLines(raw);
+  if (!parsed.length) return setMessage(els.importMessage, 'No valid lines found.', 'error');
 
-  if (!links.length) return setMessage(els.importMessage, 'No valid lines found.', 'error');
+  setMessage(els.importMessage, `Preparing ${parsed.length} link(s)...`);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const links = [];
+
+  for (let i = 0; i < parsed.length; i += 1) {
+    const item = parsed[i];
+    let finalUrl = item.url;
+    let finalTitle = item.title;
+
+    if (!finalTitle) {
+      try {
+        const metadata = await fetchTitleMetadata(item.url);
+        finalUrl = metadata.url || item.url;
+        finalTitle = metadata.title || '';
+      } catch {
+        finalTitle = '';
+      }
+    }
+
+    links.push({
+      url: finalUrl,
+      title: finalTitle,
+      date: today,
+      status: 'saved',
+      tags: [],
+      notes: '',
+    });
+
+    setMessage(els.importMessage, `Preparing ${i + 1}/${parsed.length}...`);
+  }
 
   try {
     const res = await fetch('/api/links/import', {
