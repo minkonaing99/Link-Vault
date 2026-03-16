@@ -165,6 +165,29 @@ async function parseBody(req) {
 
 async function fetchTitleForUrl(rawUrl) {
   const cleanedUrl = normalizeUrl(rawUrl);
+  const host = deriveHost(cleanedUrl);
+
+  if (/(youtube\.com|youtu\.be)$/i.test(host)) {
+    try {
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(cleanedUrl)}&format=json`;
+      const oembedRes = await fetch(oembedUrl, {
+        headers: { 'User-Agent': 'LinkVault/0.1 (+local)' },
+      });
+      if (oembedRes.ok) {
+        const oembed = await oembedRes.json();
+        if (oembed?.title) {
+          return {
+            title: String(oembed.title).trim(),
+            url: cleanedUrl,
+            host,
+          };
+        }
+      }
+    } catch {
+      // fall through to generic HTML title fetch
+    }
+  }
+
   const response = await fetch(cleanedUrl, {
     redirect: 'follow',
     headers: {
@@ -178,7 +201,7 @@ async function fetchTitleForUrl(rawUrl) {
   return {
     title: title || cleanedUrl,
     url: cleanedUrl,
-    host: deriveHost(cleanedUrl),
+    host,
   };
 }
 
