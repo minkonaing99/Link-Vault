@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Runtime logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# Local helper scripts
+start-link-vault.sh
+stop-link-vault.sh

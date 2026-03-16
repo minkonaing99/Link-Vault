@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Link Vault</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-page="home">
+    <div class="app-shell app-shell--narrow">
+      <header class="page-header">
+        <div class="page-heading">
+          <span class="page-kicker">Link Vault</span>
+          <h1 class="page-title">Home</h1>
+          <p class="page-subtitle">A tidy place to save, browse, and revisit important links.</p>
+        </div>
+        <nav class="page-nav">
+          <a class="page-nav__link is-active" href="/">Home</a>
+          <a class="page-nav__link" href="/browse.html">Browse</a>
+          <a class="page-nav__link" href="/editor.html">Add Link</a>
+        </nav>
+      </header>
+
+      <main class="page-stack">
+        <section class="surface surface--compact">
+          <div class="stats-grid stats-grid--3">
+            <div class="stat-tile"><span>Total</span><strong id="total-count">0</strong></div>
+            <div class="stat-tile"><span>Unread</span><strong id="unread-count">0</strong></div>
+            <div class="stat-tile"><span>Useful</span><strong id="useful-count">0</strong></div>
+          </div>
+        </section>
+
+        <section class="shortcut-grid">
+          <a class="surface shortcut-card" href="/browse.html">
+            <h2 class="section-title">Browse & Manage</h2>
+            <p class="section-copy">Search, filter, edit, and delete links.</p>
+          </a>
+          <a class="surface shortcut-card" href="/editor.html">
+            <h2 class="section-title">Add New Link</h2>
+            <p class="section-copy">Save a URL, fetch title, and attach tags or notes.</p>
+          </a>
+        </section>
+
+        <section class="surface">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Recent links</h2>
+              <p class="section-copy">Latest saved items.</p>
+            </div>
+            <a class="button button--ghost button--small" href="/browse.html">Open library</a>
+          </div>
+          <div id="recent-links" class="recent-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <template id="link-template">
+      <article class="recent-row">
+        <div class="recent-row__status"><span class="status-dot"></span></div>
+        <div class="recent-row__main">
+          <a class="recent-row__title" target="_blank" rel="noreferrer"></a>
+          <div class="recent-row__meta">
+            <span class="link-host"></span>
+            <span>•</span>
+            <span class="link-date"></span>
+            <span>•</span>
+            <span class="status-text"></span>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script src="/shared.js"></script>
+    <script src="/home.js"></script>
+  </body>
+</html>

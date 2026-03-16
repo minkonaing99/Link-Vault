@@ -1,0 +1,10 @@
+{
+  "name": "link-vault",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimalist local website for saving and browsing links",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

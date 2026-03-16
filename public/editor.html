@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add or Edit Link · Link Vault</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-page="editor">
+    <div class="app-shell app-shell--narrow">
+      <header class="page-header">
+        <div class="page-heading">
+          <span class="page-kicker">Link Vault</span>
+          <h1 id="page-title" class="page-title">Add Link</h1>
+          <p class="page-subtitle">Create or update a saved link without clutter.</p>
+        </div>
+        <nav class="page-nav">
+          <a class="page-nav__link" href="/">Home</a>
+          <a class="page-nav__link" href="/browse.html">Browse</a>
+          <a class="page-nav__link is-active" href="/editor.html">Add Link</a>
+        </nav>
+      </header>
+
+      <main class="page-stack">
+        <section class="surface surface--form">
+          <div class="section-header">
+            <div>
+              <h2 id="form-heading" class="section-title">Add a link</h2>
+              <p class="section-copy">Tracking parameters are cleaned automatically.</p>
+            </div>
+          </div>
+
+          <form id="link-form" class="form-stack">
+            <input type="hidden" id="link-id" />
+
+            <label class="field-group">
+              <span>URL</span>
+              <div class="toolbar-row toolbar-row--tight">
+                <input type="url" id="url" class="field" placeholder="https://example.com/article" required />
+                <button type="button" id="paste-clipboard" class="button button--ghost button--small">Paste clipboard</button>
+                <button type="button" id="fetch-title" class="button button--small">Fetch title</button>
+              </div>
+            </label>
+
+            <label class="field-group">
+              <span>Title</span>
+              <input type="text" id="title" class="field" placeholder="Optional title" />
+            </label>
+
+            <div class="two-up">
+              <label class="field-group">
+                <span>Date</span>
+                <input type="date" id="date" class="field" />
+              </label>
+              <label class="field-group">
+                <span>Status</span>
+                <select id="status" class="field field--select">
+                  <option value="saved">Saved</option>
+                  <option value="unread">Unread</option>
+                  <option value="useful">Useful</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="field-group">
+              <span>Tags</span>
+              <input type="text" id="tags" class="field" placeholder="security, cloud, certification" />
+            </label>
+
+            <label class="field-group">
+              <span>Notes</span>
+              <textarea id="notes" class="field field--textarea" rows="5" placeholder="Short note or why this matters"></textarea>
+            </label>
+
+            <div class="form-stack form-stack--tight">
+              <button type="submit" id="submit-button" class="button button--small">Save link</button>
+              <p id="form-message" class="form-message"></p>
+            </div>
+          </form>
+        </section>
+
+        <section class="surface surface--nested">
+          <div class="section-header section-header--compact">
+            <div>
+              <h2 class="section-title">Import / Export</h2>
+              <p class="section-copy">Export JSON or paste multiple lines to batch import.</p>
+            </div>
+          </div>
+          <div class="form-stack form-stack--tight">
+            <a class="button button--small" href="/api/links/export">Export JSON</a>
+            <label class="field-group">
+              <span>Batch paste</span>
+              <textarea id="batch-input" class="field field--textarea field--compact-textarea" rows="4" placeholder="https://www.youtube.com | YouTube&#10;https://example.com/article | Example Article"></textarea>
+            </label>
+            <button type="button" id="batch-import" class="button button--small">Import pasted lines</button>
+            <p id="import-message" class="form-message"></p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script src="/editor.js"></script>
+  </body>
+</html>
