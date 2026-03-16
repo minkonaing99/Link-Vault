@@ -1,75 +1,124 @@
 # Link Vault
 
-Link Vault is a minimalist local website for saving, browsing, and organizing links.
+Link Vault is a minimalist website for saving, organizing, and reviewing useful links in a clean personal library.
 
-## Features
+## Purpose
 
-- clean multi-page UI
-- home, browse, and editor pages
-- compact library rows
-- pin/unpin links
-- date grouping: `Today`, `Yesterday`, `Earlier`
-- sort controls
-- add, edit, and delete links
-- tags, notes, and status fields
-- batch paste import with `URL | Title`
-- export JSON
-- clipboard paste helper on editor page
-- automatic URL cleanup for tracking/auth callback parameters
-- favicon support
+The website is designed to make link saving feel structured instead of messy.
 
-## Project Path
+Instead of keeping random URLs in chats, notes, or browser tabs, Link Vault gives you a focused place to:
 
-```bash
-/home/apollo/clawd/web/link-vault
-```
+- save links clearly
+- organize them with lightweight metadata
+- review them later in a clean library view
+- keep important links easy to find
 
-## Data File
+It is built as a personal link management tool with a compact, low-noise interface.
 
-Link data is stored in:
+## What the Website Does
 
-```bash
-/home/apollo/clawd/links/links.json
-```
+Link Vault helps you manage links in three main ways:
 
-## Run Locally
+### 1) Save links
+You can add links individually from the editor page.
 
-```bash
-cd /home/apollo/clawd/web/link-vault
-PORT=3090 npm start
-```
+When adding a link, the website can:
+- accept a pasted URL
+- read from clipboard using the **Paste clipboard** helper
+- fetch the page title automatically
+- clean noisy tracking/auth parameters from URLs
+- let you attach tags, notes, and status
 
-Open:
+### 2) Browse links
+The browse page is designed like a compact library.
 
-```text
-http://localhost:3090
-```
+It lets you:
+- search through saved links
+- sort links
+- group links by date
+- pin important links
+- edit or delete entries quickly
+- scan links in a compact row layout
 
-## Pages
+### 3) Import and export
+The website supports lightweight bulk input and backup.
 
-- `/` — home
-- `/browse.html` — browse/manage links
-- `/editor.html` — add/edit links
+You can:
+- export the saved link database as JSON
+- batch import links by pasting multiple lines
 
-## Startup / Stop Scripts
+## Main Pages
 
-### Start Link Vault
+### Home
+The home page gives a quick overview of the library.
 
-```bash
-/home/apollo/clawd/web/link-vault/start-link-vault.sh
-```
+It shows:
+- total links
+- unread links
+- useful links
+- shortcuts to key sections
+- a recent links summary
 
-### Stop Link Vault
+### Browse
+The browse page is the main library view.
 
-```bash
-/home/apollo/clawd/web/link-vault/stop-link-vault.sh
-```
+It is optimized for:
+- compact scanning
+- quick management
+- low visual clutter
 
-The startup script checks whether port `3090` is already in use before starting.
+Features include:
+- search
+- sorting
+- date grouping
+- pinned section
+- inline edit/delete actions
+- compact rows with metadata
 
-## Batch Paste Format
+### Add Link / Editor
+The editor page is the focused input area for adding and editing links.
 
-Paste one link per line:
+It supports:
+- URL input
+- clipboard paste helper
+- title fetching
+- date selection
+- status selection
+- tags
+- notes
+- batch paste import
+- JSON export
+
+## Core Features
+
+### URL cleanup
+When a link is added or processed, Link Vault cleans unnecessary URL parameters when possible.
+
+This helps remove things like:
+- tracking parameters
+- marketing parameters
+- large auth/callback query strings
+
+The goal is to store cleaner and more durable links.
+
+### Clipboard helper
+The editor includes a **Paste clipboard** action.
+
+If your clipboard contains a valid URL, the website can:
+- insert it into the URL field
+- then fetch the page title automatically
+
+This makes saving copied links much faster.
+
+### Title fetching
+The website can fetch a page title from a URL.
+
+This reduces manual typing and helps build a cleaner library automatically.
+
+### Batch paste import
+You can paste multiple links in a simple line-based format.
+
+Example:
 
 ```text
 https://www.youtube.com | YouTube
@@ -77,29 +126,59 @@ https://example.com/article | Example Article
 https://example.com/no-title
 ```
 
-## Clipboard Helper
+This makes it easy to quickly add multiple links at once.
 
-On the editor page:
+### Tags and notes
+Each link can include:
+- tags
+- notes
 
-- click **Paste clipboard**
-- if your clipboard contains a valid URL, it is inserted into the URL field
-- then title fetch runs automatically
+This helps turn a saved URL into something more useful than a raw bookmark.
 
-## Favicon
+### Status system
+Each link can have a status such as:
+- saved
+- unread
+- useful
+- archived
 
-Favicon file:
+This helps give meaning to links instead of treating them all the same.
 
-```bash
-/home/apollo/clawd/web/link-vault/public/favicon.ico
-```
+### Pinning
+Links can be pinned so important items stay more visible.
 
-## Notes
+Pinned links are visually distinguished and grouped separately in the browse view.
 
-This project is intentionally built with:
+### Date grouping
+The library groups entries using more human-friendly labels such as:
+- Today
+- Yesterday
+- Earlier
 
-- Node.js built-in HTTP server
-- plain HTML
-- plain CSS
-- plain JavaScript
+This makes the collection easier to review over time.
 
-No heavy frontend framework is used, so it stays easy to read and modify.
+## Design Approach
+
+The website is intentionally designed to feel:
+- minimalist
+- tidy
+- compact
+- readable
+- practical
+
+It avoids a heavy dashboard style and instead behaves more like a focused working library.
+
+The main design goal is to make link management:
+- fast to use
+- easy to scan
+- visually calm
+- structured without being complicated
+
+## Summary
+
+Link Vault is a personal link library website built to help you:
+- save links quickly
+- clean links automatically
+- organize them with tags, notes, and status
+- review them in a compact browse view
+- keep important links pinned and easy to find
