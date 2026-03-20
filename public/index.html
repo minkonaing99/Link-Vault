@@ -2,48 +2,74 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f2f2f7" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Link Vault</title>
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body data-page="home">
     <div class="app-shell app-shell--narrow">
-      <header class="page-header apple-header">
-        <div class="page-heading">
-          <span class="page-kicker">Link Vault</span>
-          <h1 class="page-title">Library</h1>
-          <p class="page-subtitle">Your saved links, in one calm place.</p>
+      <header class="page-header">
+        <div class="page-bar">
+          <div class="page-bar__identity">
+            <img class="brand-mark" src="/logo-mark.png" alt="Link Vault logo" />
+            <span class="page-kicker">Link Vault</span>
+          </div>
+          <button type="button" class="button button--ghost button--small button--logout" id="logout-button">Logout</button>
         </div>
-        <nav class="page-nav">
-          <a class="page-nav__link is-active" href="/">Home</a>
-          <a class="page-nav__link" href="/browse.html">Browse</a>
-          <a class="page-nav__link" href="/editor.html">Add Link</a>
-          <button type="button" class="page-nav__link page-nav__button" id="logout-button">Logout</button>
+        <nav class="segmented-nav" aria-label="Primary">
+          <a class="segmented-nav__item is-active" href="/">Home</a>
+          <a class="segmented-nav__item" href="/browse.html">Browse</a>
+          <a class="segmented-nav__item" href="/editor.html">Add Link</a>
         </nav>
       </header>
 
       <main class="page-stack page-stack--airy">
-        <section class="surface surface--soft">
-          <div class="stats-grid stats-grid--3">
+        <section class="surface surface--soft surface--group">
+          <div class="stats-grid stats-grid--2">
             <div class="stat-tile"><span>Total</span><strong id="total-count">0</strong></div>
-            <div class="stat-tile"><span>Unread</span><strong id="unread-count">0</strong></div>
             <div class="stat-tile"><span>Useful</span><strong id="useful-count">0</strong></div>
           </div>
         </section>
 
-        <section class="shortcut-grid">
-          <a class="surface shortcut-card surface--soft" href="/browse.html">
-            <h2 class="section-title">Browse</h2>
-            <p class="section-copy">Search, filter, edit, and manage saved links.</p>
+        <section class="surface surface--soft surface--group">
+          <div class="section-header section-header--stack">
+            <div>
+              <h2 class="section-title">Quick Add</h2>
+              <p class="section-copy">Paste a URL and save it with an auto-fetched title.</p>
+            </div>
+          </div>
+          <form id="quick-add-form" class="form-stack form-stack--tight">
+            <div class="quick-entry">
+              <input id="quick-add-url" class="field quick-add-row__input" type="url" inputmode="url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://example.com/article" required />
+              <button type="button" id="quick-add-paste" class="button button--small quick-add-row__button">Paste</button>
+            </div>
+            <p id="quick-add-message" class="form-message"></p>
+          </form>
+        </section>
+
+        <section class="surface surface--soft surface--group shortcut-list">
+          <a class="shortcut-row" href="/browse.html">
+            <div>
+              <h2 class="section-title">Browse</h2>
+              <p class="section-copy">Search, filter, edit, and manage saved links.</p>
+            </div>
+            <span class="shortcut-row__chevron" aria-hidden="true">›</span>
           </a>
-          <a class="surface shortcut-card surface--soft" href="/editor.html">
-            <h2 class="section-title">Add new</h2>
-            <p class="section-copy">Save a URL with notes, tags, and status.</p>
+          <a class="shortcut-row" href="/editor.html">
+            <div>
+              <h2 class="section-title">Add Link</h2>
+              <p class="section-copy">Save a URL with tags and status.</p>
+            </div>
+            <span class="shortcut-row__chevron" aria-hidden="true">›</span>
           </a>
         </section>
 
-        <section class="surface surface--soft">
+        <section class="surface surface--soft surface--group">
           <div class="section-header">
             <div>
               <h2 class="section-title">Recent</h2>
@@ -63,9 +89,9 @@
           <a class="recent-row__title" target="_blank" rel="noreferrer"></a>
           <div class="recent-row__meta">
             <span class="link-host"></span>
-            <span>•</span>
+            <span>&bull;</span>
             <span class="link-date"></span>
-            <span>•</span>
+            <span>&bull;</span>
             <span class="status-text"></span>
           </div>
         </div>

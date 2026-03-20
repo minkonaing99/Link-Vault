@@ -8,7 +8,6 @@ const els = {
   date: document.getElementById('date'),
   status: document.getElementById('status'),
   tags: document.getElementById('tags'),
-  notes: document.getElementById('notes'),
   fetchTitle: document.getElementById('fetch-title'),
   pasteClipboard: document.getElementById('paste-clipboard'),
   submitButton: document.getElementById('submit-button'),
@@ -30,7 +29,6 @@ function payload() {
     date: els.date.value,
     status: els.status.value,
     tags: parseTags(els.tags.value),
-    notes: els.notes.value.trim(),
   };
 }
 
@@ -67,7 +65,6 @@ async function loadForEdit() {
   els.date.value = item.date || new Date().toISOString().slice(0, 10);
   els.status.value = item.status || 'saved';
   els.tags.value = (item.tags || []).join(', ');
-  els.notes.value = item.notes || '';
   els.formHeading.textContent = 'Edit link';
   els.pageTitle.textContent = 'Edit Link';
   els.submitButton.textContent = 'Save changes';
@@ -170,7 +167,6 @@ els.batchImport.addEventListener('click', async () => {
       date: today,
       status: 'saved',
       tags: [],
-      notes: '',
     });
 
     setMessage(els.importMessage, `Preparing ${i + 1}/${parsed.length}...`);

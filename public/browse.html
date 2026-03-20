@@ -2,49 +2,56 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f2f2f7" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Browse Links · Link Vault</title>
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body data-page="browse">
     <div class="app-shell app-shell--narrow">
-      <header class="page-header apple-header">
-        <div class="page-heading">
-          <span class="page-kicker">Link Vault</span>
-          <h1 class="page-title">Browse</h1>
-          <p class="page-subtitle">Search, filter, and manage your collection.</p>
+      <header class="page-header">
+        <div class="page-bar">
+          <div class="page-bar__identity">
+            <img class="brand-mark" src="/logo-mark.png" alt="Link Vault logo" />
+            <span class="page-kicker">Link Vault</span>
+          </div>
+          <button type="button" class="button button--ghost button--small button--logout" id="logout-button">Logout</button>
         </div>
-        <nav class="page-nav">
-          <a class="page-nav__link" href="/">Home</a>
-          <a class="page-nav__link is-active" href="/browse.html">Browse</a>
-          <a class="page-nav__link" href="/editor.html">Add Link</a>
-          <button type="button" class="page-nav__link page-nav__button" id="logout-button">Logout</button>
+        <nav class="segmented-nav" aria-label="Primary">
+          <a class="segmented-nav__item" href="/">Home</a>
+          <a class="segmented-nav__item is-active" href="/browse.html">Browse</a>
+          <a class="segmented-nav__item" href="/editor.html">Add Link</a>
         </nav>
       </header>
 
       <main class="page-stack page-stack--airy">
-        <section class="surface surface--soft">
-          <div class="toolbar-row toolbar-row--stack-on-mobile">
-            <input id="search" class="field" type="search" placeholder="Search title, host, tags, notes, URL" />
-            <select id="status-filter" class="field field--select">
-              <option value="all">All statuses</option>
-              <option value="saved">Saved</option>
-              <option value="unread">Unread</option>
-              <option value="useful">Useful</option>
-              <option value="archived">Archived</option>
-            </select>
-            <select id="sort-mode" class="field field--select">
-              <option value="recent">Most recent</option>
-              <option value="date-asc">Oldest first</option>
-              <option value="title-asc">Title A–Z</option>
-              <option value="title-desc">Title Z–A</option>
-            </select>
-            <a class="button button--small" href="/editor.html">Add new</a>
+        <section class="surface surface--soft surface--group">
+          <div class="filter-stack">
+            <input id="search" class="field field--search" type="search" enterkeyhint="search" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Search title, host, tags, URL" />
+            <div class="filter-grid">
+              <select id="status-filter" class="field field--select">
+                <option value="all">All statuses</option>
+                <option value="saved">Saved</option>
+                <option value="unread">Unread</option>
+                <option value="useful">Useful</option>
+                <option value="archived">Archived</option>
+              </select>
+              <select id="sort-mode" class="field field--select">
+                <option value="recent">Most recent</option>
+                <option value="date-asc">Oldest first</option>
+                <option value="title-asc">Title A-Z</option>
+                <option value="title-desc">Title Z-A</option>
+              </select>
+              <a class="button button--small" href="/editor.html">Add new</a>
+            </div>
           </div>
         </section>
 
-        <section class="surface surface--soft">
+        <section class="surface surface--soft surface--group">
           <div class="section-header">
             <div>
               <h2 class="section-title">Library</h2>
@@ -61,26 +68,29 @@
       <article class="library-row">
         <div class="library-row__status">
           <span class="status-dot"></span>
-          <button type="button" class="pin-toggle" title="Pin / unpin link" aria-label="Pin / unpin link">☆</button>
         </div>
         <div class="library-row__main">
           <div class="library-row__title-line">
             <a class="library-row__title" target="_blank" rel="noreferrer"></a>
-            <div class="library-row__actions">
-              <a class="button button--ghost button--small edit-link" href="#">Edit</a>
-              <button type="button" class="button button--ghost button--small button--danger delete-button">Delete</button>
-            </div>
           </div>
           <div class="library-row__meta">
             <span class="link-host"></span>
-            <span>•</span>
+            <span>&bull;</span>
             <span class="link-date"></span>
-            <span>•</span>
+            <span>&bull;</span>
             <span class="status-text"></span>
           </div>
-          <p class="library-row__url hidden"></p>
           <div class="library-row__tags tag-row hidden"></div>
-          <p class="library-row__notes hidden"></p>
+        </div>
+        <div class="library-row__tail">
+          <button type="button" class="pin-toggle" title="Pin / unpin link" aria-label="Pin / unpin link">☆</button>
+          <div class="row-menu">
+            <button type="button" class="row-menu__trigger" aria-label="More actions" aria-expanded="false">•••</button>
+            <div class="row-menu__popover hidden">
+              <a class="row-menu__item edit-link" href="#">Edit</a>
+              <button type="button" class="row-menu__item row-menu__item--danger delete-button">Delete</button>
+            </div>
+          </div>
         </div>
       </article>
     </template>

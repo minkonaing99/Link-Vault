@@ -15,7 +15,6 @@ const els = {
   title: document.getElementById('title'),
   url: document.getElementById('url'),
   tags: document.getElementById('tags'),
-  notes: document.getElementById('notes'),
   status: document.getElementById('status'),
   submitButton: document.getElementById('submit-button'),
   formHeading: document.getElementById('form-heading'),
@@ -59,7 +58,6 @@ function fillForm(item) {
   els.date.value = item.date || new Date().toISOString().slice(0, 10);
   els.status.value = item.status || 'saved';
   els.tags.value = (item.tags || []).join(', ');
-  els.notes.value = item.notes || '';
   els.formHeading.textContent = 'Edit link';
   els.submitButton.textContent = 'Save changes';
   els.cancelEdit.classList.remove('hidden');
@@ -102,12 +100,6 @@ function renderLinks(items) {
       tagRow.appendChild(el);
     });
 
-    const notesEl = node.querySelector('.link-notes');
-    if (item.notes) {
-      notesEl.textContent = item.notes;
-      notesEl.classList.remove('hidden');
-    }
-
     node.querySelector('.edit-button').addEventListener('click', () => fillForm(item));
     node.querySelector('.delete-button').addEventListener('click', async () => {
       const okay = confirm(`Delete this link?\n\n${item.title}`);
@@ -129,7 +121,7 @@ function applyFilters() {
     const matchesStatus = status === 'all' || item.status === status;
     if (!matchesStatus) return false;
     if (!query) return true;
-    return [item.title, item.url, item.host, item.date, item.notes, ...(item.tags || [])]
+    return [item.title, item.url, item.host, item.date, ...(item.tags || [])]
       .filter(Boolean)
       .some(value => String(value).toLowerCase().includes(query));
   });
@@ -151,7 +143,6 @@ function buildPayload() {
     date: els.date.value,
     status: els.status.value,
     tags: els.tags.value.split(',').map(t => t.trim()).filter(Boolean),
-    notes: els.notes.value.trim(),
   };
 }
 

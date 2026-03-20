@@ -1,9 +1,13 @@
 # Link Vault API
 
-Link Vault exposes a private JSON API for both:
+Last updated: 2026-03-20
+
+Link Vault exposes a private JSON API for:
 
 - the built-in web UI using cookie sessions
-- native or external clients using JWT bearer tokens
+- mobile or external clients using bearer access tokens plus refresh tokens
+
+The current routes are available under both `/api/...` and `/api/v1/...`.
 
 Base URL examples:
 
@@ -12,12 +16,9 @@ http://localhost:3090
 https://your-domain.example
 ```
 
-## Authentication modes
+## Authentication
 
-### 1. Web login with cookie sessions
-Use this for the browser UI.
-
-Login request:
+### Web login with cookie sessions
 
 ```http
 POST /api/login
@@ -45,18 +46,13 @@ Successful response:
 }
 ```
 
-The server also sets an HTTP-only session cookie.
-
-Logout:
+The server also sets an HTTP-only session cookie. Log out with:
 
 ```http
 POST /api/logout
 ```
 
-### 2. JWT bearer token auth
-Use this for native apps such as iPhone, iPad, or macOS apps.
-
-Token request:
+### Mobile token login
 
 ```http
 POST /api/auth/token
@@ -77,7 +73,9 @@ Successful response:
   "ok": true,
   "tokenType": "Bearer",
   "accessToken": "<jwt>",
-  "expiresIn": 2592000,
+  "accessTokenExpiresIn": 900,
+  "refreshToken": "<opaque-refresh-token>",
+  "refreshTokenExpiresAt": "2026-04-19T10:00:00.000Z",
   "user": {
     "id": "user-id",
     "username": "your-username",
@@ -87,15 +85,42 @@ Successful response:
 }
 ```
 
-Use the token in requests:
+Use the access token in requests:
 
 ```http
 Authorization: Bearer <accessToken>
 ```
 
-## Auth inspection
+Refresh an expired access token:
+
+```http
+POST /api/auth/refresh
+Content-Type: application/json
+```
+
+```json
+{
+  "refreshToken": "<opaque-refresh-token>"
+}
+```
+
+This revokes the old refresh token and returns a new token pair.
+
+Revoke a refresh token:
+
+```http
+POST /api/auth/logout
+Content-Type: application/json
+```
+
+```json
+{
+  "refreshToken": "<opaque-refresh-token>"
+}
+```
 
 ### Get current user
+
 ```http
 GET /api/me
 ```
@@ -114,46 +139,83 @@ Example response:
     "createdAt": "2026-03-17T08:20:17.908Z",
     "updatedAt": "2026-03-17T10:03:02.509Z"
   },
-  "authMethod": "cookie"
+  "authMethod": "bearer"
 }
 ```
 
-`authMethod` can be:
-- `cookie`
-- `bearer`
+## Link model
+
+Links now include sync-friendly timestamps and soft-delete state:
+
+```json
+{
+  "id": "42891bc9-d756-49db-9538-0717596e766c",
+  "date": "2026-03-17",
+  "title": "Cloud: MongoDB Cloud",
+  "url": "https://cloud.mongodb.com/v2/69342bd5d4e6613219586520",
+  "host": "cloud.mongodb.com",
+  "tags": ["cloud"],
+  "status": "saved",
+  "pinned": false,
+  "createdAt": "2026-03-17T08:20:17.908Z",
+  "updatedAt": "2026-03-17T08:31:00.000Z",
+  "deletedAt": null
+}
+```
 
 ## Link endpoints
 
 All link endpoints require authentication.
 
 ### List links
+
 ```http
 GET /api/links
+```
+
+Supported query params:
+
+- `page`
+- `limit` (max `200`)
+- `q` or `search`
+- `status`
+- `tag`
+- `sort` = `updatedAt`, `createdAt`, `date`, `title`
+- `order` = `asc`, `desc`
+- `updatedAfter` = ISO timestamp
+- `includeDeleted` = `true|false`
+
+Example:
+
+```http
+GET /api/v1/links?page=1&limit=20&q=swift&status=saved&tag=ios&sort=updatedAt&order=desc&updatedAfter=2026-03-20T00:00:00.000Z
 ```
 
 Response:
 
 ```json
 {
-  "links": [
-    {
-      "id": "42891bc9-d756-49db-9538-0717596e766c",
-      "date": "2026-03-17",
-      "title": "Cloud: MongoDB Cloud",
-      "url": "https://cloud.mongodb.com/v2/69342bd5d4e6613219586520",
-      "host": "cloud.mongodb.com",
-      "tags": [],
-      "notes": "",
-      "status": "saved",
-      "pinned": false,
-      "updatedAt": "2026-03-17T08:31:00.000Z"
-    }
-  ],
-  "total": 1
+  "links": [],
+  "total": 0,
+  "page": 1,
+  "limit": 20,
+  "pages": 0,
+  "query": {
+    "q": "swift",
+    "status": "saved",
+    "tag": "ios",
+    "sort": "updatedAt",
+    "order": "desc",
+    "includeDeleted": false,
+    "updatedAfter": "2026-03-20T00:00:00.000Z"
+  }
 }
 ```
 
+By default, soft-deleted links are excluded.
+
 ### Create link
+
 ```http
 POST /api/links
 Content-Type: application/json
@@ -166,90 +228,54 @@ Content-Type: application/json
   "date": "2026-03-17",
   "status": "saved",
   "tags": ["reading", "reference"],
-  "notes": "Useful later",
   "pinned": false
 }
 ```
 
-Response:
-
-```json
-{
-  "ok": true,
-  "entry": {
-    "id": "generated-id",
-    "date": "2026-03-17",
-    "title": "Example Article",
-    "url": "https://example.com/article",
-    "host": "example.com",
-    "tags": ["reading", "reference"],
-    "notes": "Useful later",
-    "status": "saved",
-    "pinned": false,
-    "updatedAt": "2026-03-17T10:00:00.000Z"
-  }
-}
-```
-
 Notes:
-- URL tracking parameters such as `utm_*` are cleaned automatically.
+- URL tracking parameters such as `utm_*` are cleaned automatically
 - duplicate URLs return `409`
+- if a matching URL already exists in soft-deleted state, create still returns `409`
 
 ### Update link
+
 ```http
 PUT /api/links/:id
 Content-Type: application/json
 ```
 
-Example:
+Updates replace the stored link fields and refresh `updatedAt`.
 
-```json
-{
-  "title": "Updated title",
-  "url": "https://example.com/article",
-  "date": "2026-03-17",
-  "status": "useful",
-  "tags": ["updated"],
-  "notes": "Updated note",
-  "pinned": true
-}
-```
+### Soft delete link
 
-Response:
-
-```json
-{
-  "ok": true,
-  "entry": {
-    "id": "generated-id",
-    "date": "2026-03-17",
-    "title": "Updated title",
-    "url": "https://example.com/article",
-    "host": "example.com",
-    "tags": ["updated"],
-    "notes": "Updated note",
-    "status": "useful",
-    "pinned": true,
-    "updatedAt": "2026-03-17T10:05:00.000Z"
-  }
-}
-```
-
-### Delete link
 ```http
 DELETE /api/links/:id
 ```
 
-Response:
+This sets:
+- `deletedAt` to the current time
+- `updatedAt` to the current time
+- `status` to `archived`
+- `pinned` to `false`
 
-```json
-{
-  "ok": true,
-  "total": 12
-}
+### Hard delete link
+
+```http
+DELETE /api/links/:id?hardDelete=true
 ```
 
+Use this only when you truly want the document removed from MongoDB.
+
+### Restore a soft-deleted link
+
+```http
+POST /api/links/restore/:id
+```
+
+This clears `deletedAt` and updates `updatedAt`.
+
 ### Import links
+
 ```http
 POST /api/links/import
 Content-Type: application/json
@@ -263,41 +289,24 @@ Content-Type: application/json
       "title": "One",
       "date": "2026-03-17",
       "status": "saved",
-      "tags": [],
-      "notes": ""
-    },
-    {
-      "url": "https://example.com/two",
-      "title": "Two",
-      "date": "2026-03-17",
-      "status": "saved",
-      "tags": [],
-      "notes": ""
+      "tags": []
     }
   ]
-}
-```
-
-Response:
-
-```json
-{
-  "ok": true,
-  "imported": 2,
-  "total": 14
 }
 ```
 
 Malformed entries are skipped during import.
 
 ### Export links
+
 ```http
 GET /api/links/export
 ```
 
-Returns a JSON file download.
+Returns a JSON download of all links, including soft-deleted records.
 
 ### Fetch page title
+
 ```http
 GET /api/fetch-title?url=https%3A%2F%2Fexample.com
 ```
@@ -312,35 +321,27 @@ Response:
 }
 ```
 
-## Status values
+## Validation rules
 
-Allowed status values:
-- `saved`
-- `unread`
-- `useful`
-- `archived`
+- `url` is required and must be a valid absolute URL
+- `date` must use `YYYY-MM-DD`
+- `title` max length is `300`
+- `tags` max count is `20`
+- each tag max length is `50`
+- `status` values are `saved`, `unread`, `useful`, `archived`
 
-Invalid values are normalized to `saved`.
+## Common errors
 
-## Error responses
+Unauthorized:
 
-Common error responses:
-
-### Unauthorized
 ```json
 {
   "error": "Authentication required"
 }
 ```
 
-### Invalid login
-```json
-{
-  "error": "Invalid username or password"
-}
-```
+Duplicate URL:
 
-### Duplicate URL
 ```json
 {
   "error": "This link already exists",
@@ -348,34 +349,18 @@ Common error responses:
 }
 ```
 
-### Link not found
+Invalid refresh token:
+
+```json
+{
+  "error": "Invalid or expired refresh token"
+}
+```
+
+Link not found:
+
 ```json
 {
   "error": "Link not found"
 }
 ```
-
-## Apple app integration notes
-
-Recommended native-app flow:
-
-1. Call `POST /api/auth/token`
-2. Store `accessToken` in Keychain
-3. Send `Authorization: Bearer <token>` on each API request
-4. Refresh by logging in again when token expires
-
-Current token lifetime is controlled by:
-
-```bash
-JWT_TTL_DAYS=30
-```
-
-## Suggested next backend improvements
-
-If you want to turn this into a stronger service API later, good next steps are:
-
-- add `/api/v1/...` route versioning
-- add CORS configuration for separate app domains
-- add refresh tokens
-- add pagination and search query params
-- add per-user link ownership if multi-user support grows

@@ -70,6 +70,13 @@ async function togglePinned(item) {
   await load();
 }
 
+function closeAllMenus() {
+  document.querySelectorAll('.row-menu__popover').forEach(popover => popover.classList.add('hidden'));
+  document.querySelectorAll('.row-menu__trigger').forEach(trigger => trigger.setAttribute('aria-expanded', 'false'));
+  document.querySelectorAll('.row-menu').forEach(menu => menu.classList.remove('is-open'));
+  document.querySelectorAll('.library-row').forEach(row => row.classList.remove('is-menu-open'));
+}
+
 function buildRow(item) {
   const node = template.content.cloneNode(true);
 
@@ -83,7 +90,8 @@ function buildRow(item) {
   const pinToggle = node.querySelector('.pin-toggle');
   pinToggle.textContent = item.pinned ? '★' : '☆';
   pinToggle.classList.toggle('is-pinned', Boolean(item.pinned));
-  pinToggle.addEventListener('click', async () => {
+  pinToggle.addEventListener('click', async event => {
+    event.stopPropagation();
     try {
       await togglePinned(item);
     } catch (error) {
@@ -96,9 +104,6 @@ function buildRow(item) {
   title.href = item.url;
   title.title = item.title || item.url;
 
-  const urlLine = node.querySelector('.library-row__url');
-  urlLine.textContent = item.url;
-
   const tagRow = node.querySelector('.library-row__tags');
   if (item.tags?.length) {
     tagRow.classList.remove('hidden');
@@ -110,17 +115,30 @@ function buildRow(item) {
     }
   }
 
-  const notes = node.querySelector('.library-row__notes');
-  if (item.notes) {
-    notes.textContent = item.notes;
-    notes.classList.remove('hidden');
-  }
+  const editLink = node.querySelector('.edit-link');
+  editLink.href = `/editor.html?id=${encodeURIComponent(item.id)}`;
 
-  node.querySelector('.edit-link').href = `/editor.html?id=${encodeURIComponent(item.id)}`;
-  node.querySelector('.delete-button').addEventListener('click', async () => {
+  node.querySelector('.delete-button').addEventListener('click', async event => {
+    event.stopPropagation();
     if (!confirm(`Delete this link?\n\n${item.title}`)) return;
     await window.LinkVault.apiFetch(`/api/links/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
+    closeAllMenus();
     await load();
+  });
+
+  const menu = node.querySelector('.row-menu');
+  const trigger = menu.querySelector('.row-menu__trigger');
+  const popover = menu.querySelector('.row-menu__popover');
+  const row = node.querySelector('.library-row');
+
+  trigger.addEventListener('click', event => {
+    event.stopPropagation();
+    const willOpen = popover.classList.contains('hidden');
+    closeAllMenus();
+    popover.classList.toggle('hidden', !willOpen);
+    trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    menu.classList.toggle('is-open', willOpen);
+    row.classList.toggle('is-menu-open', willOpen);
   });
 
   return node;
@@ -171,7 +189,7 @@ function applyFilters() {
   state.filtered = state.links.filter(item => {
     if (status !== 'all' && item.status !== status) return false;
     if (!query) return true;
-    return [item.title, item.url, item.host, item.date, item.notes, ...(item.tags || [])]
+    return [item.title, item.url, item.host, item.date, ...(item.tags || [])]
       .filter(Boolean)
       .some(value => String(value).toLowerCase().includes(query));
   });
@@ -184,6 +202,10 @@ async function load() {
   state.links = await getLinks();
   applyFilters();
 }
+
+document.addEventListener('click', () => {
+  closeAllMenus();
+});
 
 searchInput.addEventListener('input', applyFilters);
 statusFilter.addEventListener('change', applyFilters);

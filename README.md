@@ -1,40 +1,41 @@
 # Link Vault
 
+Last updated: 2026-03-20
+
 Link Vault is a private link library built with:
 
 - plain Node.js HTTP server
-- MongoDB Atlas
-- cookie-based web auth
-- JWT bearer-token auth for native or external clients
+- MongoDB
+- cookie-based web auth for the browser UI
+- bearer access tokens plus refresh tokens for mobile or external clients
 
-It supports a built-in web UI and can also act as a backend service for a future Apple app.
+It supports a built-in web UI and can also act as the backend for an iOS app using the same database.
 
 ## Features
 
-- save, edit, delete, and browse links
-- tags, notes, status, and pinning
-- URL cleanup for noisy tracking params
-- title fetching from pages
+- save, edit, browse, restore, and soft-delete links
+- tags, status, pinning, and URL cleanup
+- auto-fetch page titles
 - bulk import and JSON export
-- private login for the web UI
-- JWT token auth for app/API clients
+- paginated API queries with search, filters, sort, and sync-friendly `updatedAfter`
+- private browser login plus token auth for app clients
 
 ## Storage
 
-Link Vault uses **MongoDB Atlas** only.
-
-Legacy JSON file storage is disabled.
+Link Vault uses MongoDB only. Legacy JSON storage is disabled.
 
 ## Environment
 
 Create a local `.env` file:
 
 ```bash
-MONGODB_URI=mongodb+srv://linkvault_user:YOUR_PASSWORD@personal.os6g19g.mongodb.net/?retryWrites=true&w=majority&appName=personal
+MONGODB_URI=mongodb://127.0.0.1:27017
 MONGODB_DB_NAME=linkvault
 PORT=3090
 AUTH_COOKIE_NAME=linkvault_session
 AUTH_SESSION_TTL_DAYS=30
+ACCESS_TOKEN_TTL_MINUTES=15
+REFRESH_TOKEN_TTL_DAYS=30
 JWT_TTL_DAYS=30
 JWT_SECRET=replace-with-a-long-random-secret
 LINKVAULT_ADMIN_USERNAME=thomas
@@ -42,6 +43,7 @@ LINKVAULT_ADMIN_PASSWORD=change-this-now
 ```
 
 ### Important
+
 - keep `.env` out of git
 - use a long random `JWT_SECRET`
 - rotate secrets if they were exposed
@@ -64,93 +66,51 @@ http://localhost:3090
 Link Vault supports two auth modes.
 
 ### 1. Cookie session auth
+
 Used by the browser UI.
 
 - login page: `/login.html`
 - logout endpoint: `POST /api/logout`
 - session lifetime controlled by `AUTH_SESSION_TTL_DAYS`
 
-### 2. JWT bearer token auth
-Used by native apps or external clients.
+### 2. Mobile/API token auth
 
-Token endpoint:
+Used by iOS apps or other clients.
 
-```http
-POST /api/auth/token
-```
-
-Then send:
-
-```http
-Authorization: Bearer <accessToken>
-```
-
-Token lifetime is controlled by:
-
-```bash
-JWT_TTL_DAYS=30
-```
-
-## Initial admin user
-On startup, Link Vault syncs the admin credentials from `.env` into MongoDB:
-
-- `LINKVAULT_ADMIN_USERNAME`
-- `LINKVAULT_ADMIN_PASSWORD`
-
-This is convenient for a single-user private setup.
-
-## Web pages
-
-- `/login.html` — sign in
-- `/` — home
-- `/browse.html` — browse and manage links
-- `/editor.html` — add/edit/import/export links
-
-All app pages except the login page require authentication.
+- login for token pair: `POST /api/auth/token`
+- refresh access token: `POST /api/auth/refresh`
+- revoke refresh token: `POST /api/auth/logout`
 
 ## API
 
 See full API documentation here:
 
 - [API.md](./API.md)
+- [DEPLOY_EC2.md](./DEPLOY_EC2.md)
 
-Main endpoints include:
+Main endpoint groups:
 
-- `POST /api/login`
-- `POST /api/logout`
-- `GET /api/me`
-- `POST /api/auth/token`
-- `GET /api/links`
-- `POST /api/links`
-- `PUT /api/links/:id`
-- `DELETE /api/links/:id`
-- `POST /api/links/import`
-- `GET /api/links/export`
-- `GET /api/fetch-title?url=...`
+- auth: `/api/auth/...` and `/api/v1/auth/...`
+- links: `/api/links...` and `/api/v1/links...`
 
-## Apple app usage
+## Deployment
 
-Yes — this backend can be used by a future Apple app.
+For an Ubuntu EC2 deployment guide with Nginx and PM2:
 
-Recommended flow:
-
-1. your app calls `POST /api/auth/token`
-2. store the JWT in Keychain
-3. call Link Vault APIs with `Authorization: Bearer <token>`
+- [DEPLOY_EC2.md](./DEPLOY_EC2.md)
 
 ## Current implementation notes
 
 - password hashing uses `bcryptjs`
-- sessions are stored in MongoDB
-- bearer tokens are JWTs signed with `JWT_SECRET`
-- links are stored in the `links` collection
-- users are stored in the `users` collection
-- browser sessions are stored in the `sessions` collection
+- browser sessions are stored in MongoDB
+- refresh tokens are stored in MongoDB and can be revoked
+- access tokens are JWTs signed with `JWT_SECRET`
+- links include `createdAt`, `updatedAt`, and `deletedAt`
+- link deletes are soft deletes by default
 
-## Suggested next improvements
+## Recommended next improvements
 
-- API versioning such as `/api/v1/...`
-- refresh-token flow for native apps
-- CORS configuration for separate frontend/app origins
-- pagination and search params
-- multi-user ownership for links
+- add per-user link ownership for multi-user support
+- add CORS configuration if the mobile app is served from a different origin pattern
+- add automated API tests for auth, validation, filtering, and restore flows
+- add conflict-aware sync semantics if the iOS app will support offline edits

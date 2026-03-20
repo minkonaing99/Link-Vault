@@ -16,14 +16,22 @@ const DB_NAME = process.env.MONGODB_DB_NAME || 'linkvault';
 const COLLECTION_NAME = 'links';
 const USERS_COLLECTION = 'users';
 const SESSIONS_COLLECTION = 'sessions';
+const REFRESH_TOKENS_COLLECTION = 'refresh_tokens';
 const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'linkvault_session';
 const AUTH_SESSION_TTL_DAYS = Number(process.env.AUTH_SESSION_TTL_DAYS || 30);
 const JWT_TTL_DAYS = Number(process.env.JWT_TTL_DAYS || 30);
+const ACCESS_TOKEN_TTL_MINUTES = Number(process.env.ACCESS_TOKEN_TTL_MINUTES || 15);
+const REFRESH_TOKEN_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS || JWT_TTL_DAYS || 30);
 const JWT_SECRET = String(process.env.JWT_SECRET || '').trim();
 const ADMIN_USERNAME = String(process.env.LINKVAULT_ADMIN_USERNAME || '').trim();
 const ADMIN_PASSWORD = String(process.env.LINKVAULT_ADMIN_PASSWORD || '').trim();
 const PROTECTED_PAGES = new Set(['/browse.html', '/editor.html', '/']);
 const PUBLIC_PAGES = new Set(['/login.html']);
+const ENTRY_TITLE_MAX_LENGTH = 300;
+const ENTRY_TAG_MAX_LENGTH = 50;
+const ENTRY_TAGS_MAX_COUNT = 20;
+const LIST_LIMIT_DEFAULT = 50;
+const LIST_LIMIT_MAX = 200;
 
 if (!MONGODB_URI) {
   throw new Error('Missing MONGODB_URI. Put it in .env or the environment before starting Link Vault.');
@@ -38,6 +46,7 @@ let db;
 let linksCollection;
 let usersCollection;
 let sessionsCollection;
+let refreshTokensCollection;
 
 function sendJson(res, status, data, extraHeaders = {}) {
   res.writeHead(status, {
@@ -218,21 +227,164 @@ function normalizeTags(tags) {
   return [...new Set(list.map(tag => String(tag).trim()).filter(Boolean))];
 }
 
-function sanitizeEntry(input = {}) {
-  const rawUrl = String(input.url || '').trim();
-  if (!rawUrl) throw new Error('URL is required');
-  const cleanedUrl = normalizeUrl(rawUrl);
+function validationError(message, details = {}) {
+  const error = new Error(message);
+  error.statusCode = 400;
+  error.payload = { error: message, ...details };
+  return error;
+}
+
+function ensurePlainObject(value, fallbackMessage = 'Request body must be a JSON object') {
+  if (!value || Array.isArray(value) || typeof value !== 'object') {
+    throw validationError(fallbackMessage);
+  }
+  return value;
+}
+
+function isValidDateString(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function escapeRegex(input) {
+  return String(input).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function parseBooleanFlag(value, defaultValue = false) {
+  if (value == null || value === '') return defaultValue;
+  const normalized = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return defaultValue;
+}
+
+function parsePositiveInt(value, fallback, min = 1, max = Number.MAX_SAFE_INTEGER) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function parseIsoDateTime(value, fieldName) {
+  if (!value) return null;
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) {
+    throw validationError(`Invalid ${fieldName} value`);
+  }
+  return parsed.toISOString();
+}
+
+function buildSort(sort, order) {
+  const direction = String(order || 'desc').toLowerCase() === 'asc' ? 1 : -1;
+  if (sort === 'title') return { pinned: -1, title: direction, updatedAt: -1, id: 1 };
+  if (sort === 'date') return { pinned: -1, date: direction, updatedAt: -1, id: 1 };
+  if (sort === 'createdAt') return { pinned: -1, createdAt: direction, updatedAt: -1, id: 1 };
+  return { pinned: -1, updatedAt: direction, createdAt: -1, id: 1 };
+}
+
+function parseLinkListQuery(searchParams) {
+  const page = parsePositiveInt(searchParams.get('page'), 1, 1);
+  const limit = parsePositiveInt(searchParams.get('limit'), LIST_LIMIT_DEFAULT, 1, LIST_LIMIT_MAX);
+  const includeDeleted = parseBooleanFlag(searchParams.get('includeDeleted'), false);
+  const status = String(searchParams.get('status') || '').trim();
+  const tag = String(searchParams.get('tag') || '').trim();
+  const q = String(searchParams.get('q') || searchParams.get('search') || '').trim();
+  const sort = String(searchParams.get('sort') || 'updatedAt').trim();
+  const order = String(searchParams.get('order') || 'desc').trim();
+  const updatedAfter = parseIsoDateTime(searchParams.get('updatedAfter'), 'updatedAfter');
+  const filter = {};
+
+  if (!includeDeleted) {
+    filter.deletedAt = null;
+  }
+
+  if (status) {
+    if (status === 'deleted') {
+      filter.deletedAt = { $ne: null };
+    } else {
+      filter.status = normalizeStatus(status);
+    }
+  }
+
+  if (tag) {
+    filter.tags = { $regex: new RegExp(`^${escapeRegex(tag)}$`, 'i') };
+  }
+
+  if (updatedAfter) {
+    filter.updatedAt = { $gt: updatedAfter };
+  }
+
+  if (q) {
+    const regex = new RegExp(escapeRegex(q), 'i');
+    filter.$or = [
+      { title: regex },
+      { url: regex },
+      { host: regex },
+      { tags: regex },
+      { date: regex },
+    ];
+  }
+
   return {
-    id: input.id ? String(input.id) : makeId(),
-    date: String(input.date || new Date().toISOString().slice(0, 10)).trim(),
-    title: String(input.title || cleanedUrl).trim() || cleanedUrl,
+    page,
+    limit,
+    skip: (page - 1) * limit,
+    filter,
+    sort: buildSort(sort, order),
+    query: q,
+    includeDeleted,
+    status,
+    tag,
+    sortField: sort,
+    sortOrder: String(order || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc',
+    updatedAfter,
+  };
+}
+
+function sanitizeEntry(input = {}, options = {}) {
+  const body = ensurePlainObject(input, 'Link payload must be a JSON object');
+  const rawUrl = String(body.url || '').trim();
+  if (!rawUrl) throw validationError('URL is required');
+
+  let cleanedUrl;
+  try {
+    cleanedUrl = normalizeUrl(rawUrl);
+  } catch {
+    throw validationError('URL must be a valid absolute URL');
+  }
+
+  const date = String(body.date || new Date().toISOString().slice(0, 10)).trim();
+  if (!isValidDateString(date)) {
+    throw validationError('date must use YYYY-MM-DD format');
+  }
+
+  const title = String(body.title || cleanedUrl).trim() || cleanedUrl;
+  if (title.length > ENTRY_TITLE_MAX_LENGTH) {
+    throw validationError(`title must be ${ENTRY_TITLE_MAX_LENGTH} characters or fewer`);
+  }
+
+  const tags = normalizeTags(body.tags);
+  if (tags.length > ENTRY_TAGS_MAX_COUNT) {
+    throw validationError(`tags must contain ${ENTRY_TAGS_MAX_COUNT} items or fewer`);
+  }
+  if (tags.some(tag => tag.length > ENTRY_TAG_MAX_LENGTH)) {
+    throw validationError(`each tag must be ${ENTRY_TAG_MAX_LENGTH} characters or fewer`);
+  }
+
+  const now = new Date().toISOString();
+  const createdAt = options.existing?.createdAt || body.createdAt || now;
+  const deletedAt = body.deletedAt == null || body.deletedAt === '' ? null : parseIsoDateTime(body.deletedAt, 'deletedAt');
+
+  return {
+    id: body.id ? String(body.id) : makeId(),
+    date,
+    title,
     url: cleanedUrl,
     host: deriveHost(cleanedUrl),
-    tags: normalizeTags(input.tags),
-    notes: String(input.notes || '').trim(),
-    status: normalizeStatus(String(input.status || 'saved').trim()),
-    pinned: Boolean(input.pinned),
-    updatedAt: new Date().toISOString(),
+    tags,
+    status: normalizeStatus(String(body.status || 'saved').trim()),
+    pinned: Boolean(body.pinned),
+    createdAt: parseIsoDateTime(createdAt, 'createdAt') || now,
+    updatedAt: now,
+    deletedAt,
   };
 }
 
@@ -244,10 +396,11 @@ function normalizeStoredEntry(item = {}) {
     url: item.url,
     host: item.host || deriveHost(item.url || ''),
     tags: normalizeTags(item.tags),
-    notes: item.notes || '',
     status: normalizeStatus(item.status || 'saved'),
     pinned: Boolean(item.pinned),
+    createdAt: item.createdAt || item.updatedAt || null,
     updatedAt: item.updatedAt || null,
+    deletedAt: item.deletedAt || null,
   };
 }
 
@@ -311,23 +464,42 @@ async function fetchTitleForUrl(rawUrl) {
 }
 
 async function connectDb() {
-  if (linksCollection && usersCollection && sessionsCollection) return;
+  if (linksCollection && usersCollection && sessionsCollection && refreshTokensCollection) return;
   mongoClient = new MongoClient(MONGODB_URI);
   await mongoClient.connect();
   db = mongoClient.db(DB_NAME);
   linksCollection = db.collection(COLLECTION_NAME);
   usersCollection = db.collection(USERS_COLLECTION);
   sessionsCollection = db.collection(SESSIONS_COLLECTION);
+  refreshTokensCollection = db.collection(REFRESH_TOKENS_COLLECTION);
+
+  try {
+    const indexes = await linksCollection.indexes();
+    const legacyNotesTextIndex = indexes.find(index =>
+      index.name === 'title_text_notes_text_host_text_tags_text'
+    );
+    if (legacyNotesTextIndex) {
+      await linksCollection.dropIndex(legacyNotesTextIndex.name);
+    }
+  } catch {
+  }
 
   await Promise.all([
     linksCollection.createIndex({ id: 1 }, { unique: true }),
     linksCollection.createIndex({ url: 1 }, { unique: true }),
     linksCollection.createIndex({ updatedAt: -1 }),
+    linksCollection.createIndex({ createdAt: -1 }),
     linksCollection.createIndex({ date: -1 }),
-    linksCollection.createIndex({ title: 'text', notes: 'text', host: 'text', tags: 'text' }),
+    linksCollection.createIndex({ deletedAt: 1 }),
+    linksCollection.createIndex({ status: 1, updatedAt: -1 }),
+    linksCollection.createIndex({ tags: 1, updatedAt: -1 }),
+    linksCollection.createIndex({ title: 'text', host: 'text', tags: 'text' }),
     usersCollection.createIndex({ username: 1 }, { unique: true }),
     sessionsCollection.createIndex({ token: 1 }, { unique: true }),
     sessionsCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    refreshTokensCollection.createIndex({ token: 1 }, { unique: true }),
+    refreshTokensCollection.createIndex({ userId: 1, revokedAt: 1 }),
+    refreshTokensCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
   ]);
 }
 
@@ -426,21 +598,101 @@ async function requireAuth(req, res) {
 }
 
 function createAccessToken(user) {
-  return signJwt({ sub: user.id, username: user.username, type: 'access' }, JWT_TTL_DAYS * 24 * 60 * 60);
+  return signJwt({ sub: user.id, username: user.username, type: 'access' }, ACCESS_TOKEN_TTL_MINUTES * 60);
 }
 
-async function readLinks() {
-  const docs = await linksCollection.find({}, { projection: { _id: 0 } }).sort({ updatedAt: -1, date: -1, title: 1 }).toArray();
+function refreshTokenExpiryDate() {
+  return new Date(Date.now() + REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+}
+
+async function createRefreshToken(user) {
+  await connectDb();
+  const token = makeSessionToken();
+  const expiresAt = refreshTokenExpiryDate();
+  await refreshTokensCollection.insertOne({
+    token,
+    userId: user.id,
+    username: user.username,
+    createdAt: new Date().toISOString(),
+    expiresAt,
+    revokedAt: null,
+  });
+  return { refreshToken: token, expiresAt: expiresAt.toISOString() };
+}
+
+async function issueTokenPair(user) {
+  const accessToken = createAccessToken(user);
+  const refresh = await createRefreshToken(user);
+  return {
+    tokenType: 'Bearer',
+    accessToken,
+    accessTokenExpiresIn: ACCESS_TOKEN_TTL_MINUTES * 60,
+    refreshToken: refresh.refreshToken,
+    refreshTokenExpiresAt: refresh.expiresAt,
+    user: publicUser(user),
+  };
+}
+
+async function revokeRefreshToken(token) {
+  await connectDb();
+  if (!token) return false;
+  const timestamp = new Date().toISOString();
+  const result = await refreshTokensCollection.updateOne(
+    { token, revokedAt: null },
+    { $set: { revokedAt: timestamp, updatedAt: timestamp } }
+  );
+  return Boolean(result.modifiedCount);
+}
+
+async function findValidRefreshToken(token) {
+  await connectDb();
+  if (!token) return null;
+  const refreshToken = await refreshTokensCollection.findOne({ token }, { projection: { _id: 0 } });
+  if (!refreshToken) return null;
+  if (refreshToken.revokedAt) return null;
+  if (new Date(refreshToken.expiresAt).getTime() <= Date.now()) {
+    await refreshTokensCollection.deleteOne({ token });
+    return null;
+  }
+  return refreshToken;
+}
+
+async function readLinks(queryOptions = {}) {
+  const params = {
+    filter: {},
+    sort: buildSort('updatedAt', 'desc'),
+    limit: LIST_LIMIT_DEFAULT,
+    skip: 0,
+    page: 1,
+    ...queryOptions,
+  };
+
+  const [docs, total] = await Promise.all([
+    linksCollection.find(params.filter, { projection: { _id: 0 } }).sort(params.sort).skip(params.skip).limit(params.limit).toArray(),
+    linksCollection.countDocuments(params.filter),
+  ]);
+
+  return {
+    links: docs.map(normalizeStoredEntry),
+    total,
+    page: params.page,
+    limit: params.limit,
+    pages: total ? Math.ceil(total / params.limit) : 0,
+  };
+}
+
+async function readAllLinksForExport() {
+  const docs = await linksCollection.find({}, { projection: { _id: 0 } }).sort(buildSort('updatedAt', 'desc')).toArray();
   return docs.map(normalizeStoredEntry);
 }
 
 async function createLink(input) {
   const entry = sanitizeEntry(input);
-  const existing = await linksCollection.findOne({ url: entry.url }, { projection: { _id: 0, url: 1 } });
+  const existing = await linksCollection.findOne({ url: entry.url }, { projection: { _id: 0, url: 1, deletedAt: 1 } });
   if (existing) {
     const error = new Error('This link already exists');
     error.statusCode = 409;
-    error.payload = { error: 'This link already exists', url: entry.url };
+    error.payload = { error: existing.deletedAt ? 'This link already exists but is deleted' : 'This link already exists', url: entry.url };
     throw error;
   }
   await linksCollection.insertOne(entry);
@@ -461,7 +713,7 @@ async function importLinks(items) {
     } catch {
     }
   }
-  return { imported: added.length, total: await linksCollection.countDocuments({}) };
+  return { imported: added.length, total: await linksCollection.countDocuments({ deletedAt: null }) };
 }
 
 async function updateLink(id, body) {
@@ -472,7 +724,7 @@ async function updateLink(id, body) {
     error.payload = { error: 'Link not found' };
     throw error;
   }
-  const entry = sanitizeEntry({ ...current, ...body, id });
+  const entry = sanitizeEntry({ ...current, ...body, id }, { existing: current });
   const duplicate = await linksCollection.findOne({ url: entry.url, id: { $ne: id } }, { projection: { _id: 0, id: 1 } });
   if (duplicate) {
     const error = new Error('Another link already uses this URL');
@@ -484,21 +736,68 @@ async function updateLink(id, body) {
   return normalizeStoredEntry(entry);
 }
 
-async function deleteLink(id) {
-  const result = await linksCollection.deleteOne({ id });
-  if (!result.deletedCount) {
+async function deleteLink(id, options = {}) {
+  const current = await linksCollection.findOne({ id }, { projection: { _id: 0 } });
+  if (!current) {
     const error = new Error('Link not found');
     error.statusCode = 404;
     error.payload = { error: 'Link not found' };
     throw error;
   }
-  return { total: await linksCollection.countDocuments({}) };
+
+  if (options.hardDelete) {
+    await linksCollection.deleteOne({ id });
+  } else {
+    const deletedAt = new Date().toISOString();
+    await linksCollection.updateOne(
+      { id },
+      { $set: { deletedAt, updatedAt: deletedAt, status: 'archived', pinned: false } }
+    );
+  }
+
+  return { total: await linksCollection.countDocuments({ deletedAt: null }) };
+}
+
+async function restoreLink(id) {
+  const current = await linksCollection.findOne({ id }, { projection: { _id: 0 } });
+  if (!current) {
+    throw Object.assign(new Error('Link not found'), {
+      statusCode: 404,
+      payload: { error: 'Link not found' },
+    });
+  }
+  if (!current.deletedAt) {
+    return normalizeStoredEntry(current);
+  }
+  const restoredAt = new Date().toISOString();
+  const next = {
+    ...current,
+    deletedAt: null,
+    updatedAt: restoredAt,
+    status: current.status === 'archived' ? 'saved' : normalizeStatus(current.status || 'saved'),
+  };
+  await linksCollection.updateOne({ id }, { $set: next });
+  return normalizeStoredEntry(next);
+}
+
+function isRoute(pathname, ...candidates) {
+  return candidates.includes(pathname);
+}
+
+function linkIdFromPath(pathname, prefix) {
+  if (!pathname.startsWith(prefix)) return null;
+  const remainder = pathname.slice(prefix.length);
+  if (!remainder || remainder.includes('/')) return null;
+  return decodeURIComponent(remainder);
 }
 
 const server = http.createServer(async (req, res) => {
   const reqUrl = new URL(req.url, `http://${req.headers.host}`);
+  const linksBasePath = isRoute(reqUrl.pathname, '/api/links', '/api/v1/links');
+  const linkItemId = linkIdFromPath(reqUrl.pathname, '/api/links/') || linkIdFromPath(reqUrl.pathname, '/api/v1/links/');
+  const linkRestoreId = linkIdFromPath(reqUrl.pathname, '/api/links/restore/') || linkIdFromPath(reqUrl.pathname, '/api/v1/links/restore/');
 
-  if (req.method === 'POST' && reqUrl.pathname === '/api/login') {
+  if (req.method === 'POST' && isRoute(reqUrl.pathname, '/api/login', '/api/v1/login')) {
     try {
       const body = await parseBody(req);
       const username = String(body.username || '').trim();
@@ -513,7 +812,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (req.method === 'POST' && reqUrl.pathname === '/api/auth/token') {
+  if (req.method === 'POST' && isRoute(reqUrl.pathname, '/api/auth/token', '/api/v1/auth/token')) {
     try {
       const body = await parseBody(req);
       const username = String(body.username || '').trim();
@@ -521,47 +820,89 @@ const server = http.createServer(async (req, res) => {
       if (!username || !password) return sendJson(res, 400, { error: 'Username and password are required' });
       const user = await authenticateUser(username, password);
       if (!user) return sendJson(res, 401, { error: 'Invalid username or password' });
-      const accessToken = createAccessToken(user);
-      return sendJson(res, 200, {
-        ok: true,
-        tokenType: 'Bearer',
-        accessToken,
-        expiresIn: JWT_TTL_DAYS * 24 * 60 * 60,
-        user: publicUser(user),
-      });
+      const tokens = await issueTokenPair(user);
+      return sendJson(res, 200, { ok: true, ...tokens });
     } catch (error) {
       return sendJson(res, 400, { error: error.message });
     }
   }
 
-  if (req.method === 'POST' && reqUrl.pathname === '/api/logout') {
+  if (req.method === 'POST' && isRoute(reqUrl.pathname, '/api/auth/refresh', '/api/v1/auth/refresh')) {
+    try {
+      const body = ensurePlainObject(await parseBody(req));
+      const refreshToken = String(body.refreshToken || '').trim();
+      if (!refreshToken) return sendJson(res, 400, { error: 'refreshToken is required' });
+
+      const storedToken = await findValidRefreshToken(refreshToken);
+      if (!storedToken) return sendJson(res, 401, { error: 'Invalid or expired refresh token' });
+
+      const user = await usersCollection.findOne(
+        { id: storedToken.userId, username: storedToken.username },
+        { projection: { _id: 0, passwordHash: 0 } }
+      );
+      if (!user) return sendJson(res, 401, { error: 'Invalid refresh token user' });
+
+      await revokeRefreshToken(refreshToken);
+      const tokens = await issueTokenPair(user);
+      return sendJson(res, 200, { ok: true, ...tokens });
+    } catch (error) {
+      return sendJson(res, error.statusCode || 400, error.payload || { error: error.message });
+    }
+  }
+
+  if (req.method === 'POST' && isRoute(reqUrl.pathname, '/api/auth/logout', '/api/v1/auth/logout')) {
+    try {
+      const body = ensurePlainObject(await parseBody(req));
+      const revoked = await revokeRefreshToken(String(body.refreshToken || '').trim());
+      return sendJson(res, 200, { ok: true, revoked });
+    } catch (error) {
+      return sendJson(res, 400, { error: error.message });
+    }
+  }
+
+  if (req.method === 'POST' && isRoute(reqUrl.pathname, '/api/logout', '/api/v1/logout')) {
     await destroySession(req, res);
     return sendJson(res, 200, { ok: true });
   }
 
-  if (req.method === 'GET' && reqUrl.pathname === '/api/me') {
+  if (req.method === 'GET' && isRoute(reqUrl.pathname, '/api/me', '/api/v1/me')) {
     const auth = await getAuthenticatedUser(req);
     if (!auth) return sendJson(res, 401, { error: 'Authentication required' }, { 'Set-Cookie': clearCookie() });
     return sendJson(res, 200, { user: auth.user, authMethod: auth.method });
   }
 
-  if (isApiPath(reqUrl.pathname) && !['/api/login', '/api/logout', '/api/auth/token', '/api/me'].includes(reqUrl.pathname)) {
+  if (isApiPath(reqUrl.pathname) && ![
+    '/api/login', '/api/logout', '/api/auth/token', '/api/auth/refresh', '/api/auth/logout', '/api/me',
+    '/api/v1/login', '/api/v1/logout', '/api/v1/auth/token', '/api/v1/auth/refresh', '/api/v1/auth/logout', '/api/v1/me',
+  ].includes(reqUrl.pathname)) {
     const auth = await requireAuth(req, res);
     if (!auth) return;
   }
 
-  if (req.method === 'GET' && reqUrl.pathname === '/api/links') {
+  if (req.method === 'GET' && linksBasePath) {
     try {
-      const links = await readLinks();
-      return sendJson(res, 200, { links, total: links.length });
+      const query = parseLinkListQuery(reqUrl.searchParams);
+      const result = await readLinks(query);
+      return sendJson(res, 200, {
+        ...result,
+        query: {
+          q: query.query,
+          status: query.status || null,
+          tag: query.tag || null,
+          sort: query.sortField,
+          order: query.sortOrder,
+          includeDeleted: query.includeDeleted,
+          updatedAfter: query.updatedAfter,
+        },
+      });
     } catch (error) {
-      return sendJson(res, 500, { error: error.message });
+      return sendJson(res, error.statusCode || 500, error.payload || { error: error.message });
     }
   }
 
-  if (req.method === 'GET' && reqUrl.pathname === '/api/links/export') {
+  if (req.method === 'GET' && isRoute(reqUrl.pathname, '/api/links/export', '/api/v1/links/export')) {
     try {
-      const links = await readLinks();
+      const links = await readAllLinksForExport();
       return sendText(res, 200, JSON.stringify(links, null, 2) + '\n', 'application/json; charset=utf-8', {
         'Content-Disposition': 'attachment; filename="links-export.json"',
       });
@@ -570,7 +911,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (req.method === 'GET' && reqUrl.pathname === '/api/fetch-title') {
+  if (req.method === 'GET' && isRoute(reqUrl.pathname, '/api/fetch-title', '/api/v1/fetch-title')) {
     try {
       const targetUrl = reqUrl.searchParams.get('url');
       if (!targetUrl) return sendJson(res, 400, { error: 'url query parameter is required' });
@@ -581,18 +922,18 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (req.method === 'POST' && reqUrl.pathname === '/api/links') {
+  if (req.method === 'POST' && linksBasePath) {
     try {
-      const entry = await createLink(await parseBody(req));
+      const entry = await createLink(ensurePlainObject(await parseBody(req)));
       return sendJson(res, 201, { ok: true, entry });
     } catch (error) {
       return sendJson(res, error.statusCode || 400, error.payload || { error: error.message });
     }
   }
 
-  if (req.method === 'POST' && reqUrl.pathname === '/api/links/import') {
+  if (req.method === 'POST' && isRoute(reqUrl.pathname, '/api/links/import', '/api/v1/links/import')) {
     try {
-      const body = await parseBody(req);
+      const body = ensurePlainObject(await parseBody(req));
       const result = await importLinks(Array.isArray(body.links) ? body.links : []);
       return sendJson(res, 200, { ok: true, ...result });
     } catch (error) {
@@ -600,20 +941,29 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (req.method === 'PUT' && reqUrl.pathname.startsWith('/api/links/')) {
+  if (req.method === 'POST' && linkRestoreId) {
     try {
-      const id = decodeURIComponent(reqUrl.pathname.split('/').pop());
-      const entry = await updateLink(id, await parseBody(req));
+      const entry = await restoreLink(linkRestoreId);
       return sendJson(res, 200, { ok: true, entry });
     } catch (error) {
       return sendJson(res, error.statusCode || 400, error.payload || { error: error.message });
     }
   }
 
-  if (req.method === 'DELETE' && reqUrl.pathname.startsWith('/api/links/')) {
+  if (req.method === 'PUT' && linkItemId) {
     try {
-      const id = decodeURIComponent(reqUrl.pathname.split('/').pop());
-      const result = await deleteLink(id);
+      const entry = await updateLink(linkItemId, ensurePlainObject(await parseBody(req)));
+      return sendJson(res, 200, { ok: true, entry });
+    } catch (error) {
+      return sendJson(res, error.statusCode || 400, error.payload || { error: error.message });
+    }
+  }
+
+  if (req.method === 'DELETE' && linkItemId) {
+    try {
+      const result = await deleteLink(linkItemId, {
+        hardDelete: parseBooleanFlag(reqUrl.searchParams.get('hardDelete'), false),
+      });
       return sendJson(res, 200, { ok: true, ...result });
     } catch (error) {
       return sendJson(res, error.statusCode || 400, error.payload || { error: error.message });
@@ -651,9 +1001,9 @@ async function start() {
   await ensureAdminUser();
   server.listen(PORT, () => {
     console.log(`Link Vault running at http://localhost:${PORT}`);
-    console.log(`Using MongoDB Atlas database: ${DB_NAME}.${COLLECTION_NAME}`);
+    console.log(`Using MongoDB database: ${DB_NAME}.${COLLECTION_NAME}`);
     console.log('Legacy JSON fallback is disabled.');
-    console.log('Auth enabled with cookie sessions and JWT bearer tokens.');
+    console.log('Auth enabled with cookie sessions, bearer access tokens, and refresh tokens.');
   });
 }
 

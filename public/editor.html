@@ -2,30 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f2f2f7" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Add or Edit Link · Link Vault</title>
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body data-page="editor">
     <div class="app-shell app-shell--narrow">
-      <header class="page-header apple-header">
-        <div class="page-heading">
-          <span class="page-kicker">Link Vault</span>
-          <h1 id="page-title" class="page-title">Add Link</h1>
-          <p class="page-subtitle">Create or update a saved link.</p>
+      <header class="page-header">
+        <div class="page-bar">
+          <div class="page-bar__identity">
+            <img class="brand-mark" src="/logo-mark.png" alt="Link Vault logo" />
+            <span class="page-kicker">Link Vault</span>
+          </div>
+          <button type="button" class="button button--ghost button--small button--logout" id="logout-button">Logout</button>
         </div>
-        <nav class="page-nav">
-          <a class="page-nav__link" href="/">Home</a>
-          <a class="page-nav__link" href="/browse.html">Browse</a>
-          <a class="page-nav__link is-active" href="/editor.html">Add Link</a>
-          <button type="button" class="page-nav__link page-nav__button" id="logout-button">Logout</button>
+        <nav class="segmented-nav" aria-label="Primary">
+          <a class="segmented-nav__item" href="/">Home</a>
+          <a class="segmented-nav__item" href="/browse.html">Browse</a>
+          <a class="segmented-nav__item is-active" href="/editor.html">Add Link</a>
         </nav>
       </header>
 
       <main class="page-stack page-stack--airy editor-stack">
-        <section class="surface surface--soft surface--form editor-primary">
-          <div class="section-header">
+        <section class="surface surface--soft surface--group editor-primary">
+          <div class="section-header section-header--stack">
             <div>
               <h2 id="form-heading" class="section-title">Add a link</h2>
               <p class="section-copy">Tracking parameters are cleaned automatically.</p>
@@ -35,62 +40,64 @@
           <form id="link-form" class="form-stack editor-form">
             <input type="hidden" id="link-id" />
 
-            <label class="field-group">
-              <span>URL</span>
-              <div class="toolbar-row toolbar-row--tight toolbar-row--stack-on-mobile editor-url-row">
-                <input type="url" id="url" class="field editor-field editor-url-input" placeholder="https://example.com/article" required />
-                <button type="button" id="paste-clipboard" class="button button--ghost button--small editor-action">Paste clipboard</button>
-                <button type="button" id="fetch-title" class="button button--small editor-action">Fetch title</button>
-              </div>
-            </label>
-
-            <label class="field-group">
-              <span>Title</span>
-              <input type="text" id="title" class="field editor-field" placeholder="Optional title" />
-            </label>
-
-            <div class="two-up">
+            <div class="settings-group">
               <label class="field-group">
-                <span>Date</span>
-                <input type="date" id="date" class="field editor-field" />
+                <span>URL</span>
+                <div class="quick-entry quick-entry--stretch">
+                  <input type="url" id="url" class="field editor-field editor-url-input" inputmode="url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://example.com/article" required />
+                  <button type="button" id="paste-clipboard" class="button button--ghost button--small editor-action">Paste</button>
+                  <button type="button" id="fetch-title" class="button button--small editor-action">Fetch</button>
+                </div>
               </label>
+
               <label class="field-group">
-                <span>Status</span>
-                <select id="status" class="field field--select editor-field">
-                  <option value="saved">Saved</option>
-                  <option value="unread">Unread</option>
-                  <option value="useful">Useful</option>
-                  <option value="archived">Archived</option>
-                </select>
+                <span>Title</span>
+                <input type="text" id="title" class="field editor-field" autocapitalize="sentences" autocorrect="on" spellcheck="true" placeholder="Optional title" />
+              </label>
+
+              <div class="two-up">
+                <label class="field-group">
+                  <span>Date</span>
+                  <input type="date" id="date" class="field editor-field" />
+                </label>
+                <label class="field-group">
+                  <span>Status</span>
+                  <select id="status" class="field field--select editor-field">
+                    <option value="saved">Saved</option>
+                    <option value="unread">Unread</option>
+                    <option value="useful">Useful</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </label>
+              </div>
+
+              <label class="field-group">
+                <span>Tags</span>
+                <input type="text" id="tags" class="field editor-field" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="security, cloud, certification" />
               </label>
             </div>
 
-            <label class="field-group">
-              <span>Tags</span>
-              <input type="text" id="tags" class="field editor-field" placeholder="security, cloud, certification" />
-            </label>
-
             <div class="form-stack form-stack--tight editor-submit-row">
-              <button type="submit" id="submit-button" class="button button--small editor-submit">Save link</button>
+              <button type="submit" id="submit-button" class="button editor-submit">Save link</button>
               <p id="form-message" class="form-message"></p>
             </div>
           </form>
         </section>
 
-        <section class="surface surface--soft surface--nested editor-secondary">
-          <div class="section-header section-header--compact">
+        <section class="surface surface--soft surface--group editor-secondary">
+          <div class="section-header section-header--stack">
             <div>
               <h2 class="section-title">Import / Export</h2>
               <p class="section-copy">Export JSON or paste multiple lines to batch import.</p>
             </div>
           </div>
           <div class="form-stack form-stack--tight editor-utility">
-            <a class="button button--small button--ghost editor-export" href="/api/links/export">Export JSON</a>
+            <a class="button button--ghost editor-export" href="/api/links/export">Export JSON</a>
             <label class="field-group">
               <span>Batch paste</span>
               <textarea id="batch-input" class="field field--textarea field--compact-textarea editor-field editor-batch" rows="4" placeholder="https://www.youtube.com | YouTube&#10;https://example.com/article | Example Article"></textarea>
             </label>
-            <button type="button" id="batch-import" class="button button--small editor-import">Import pasted lines</button>
+            <button type="button" id="batch-import" class="button editor-import">Import pasted lines</button>
             <p id="import-message" class="form-message"></p>
           </div>
         </section>
