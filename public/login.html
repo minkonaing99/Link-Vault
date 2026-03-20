@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login · Link Vault</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-page="login" class="login-page">
+    <main class="login-minimal">
+      <section class="login-card surface">
+        <div class="login-card__head">
+          <span class="page-kicker">Link Vault</span>
+          <h1 class="login-card__title">Welcome back</h1>
+          <p class="login-card__subtitle">Sign in to continue.</p>
+        </div>
+
+        <form id="login-form" class="login-card__form">
+          <label class="field-group">
+            <span>Username</span>
+            <input id="username" class="field login-field" type="text" autocomplete="username" placeholder="Enter your username" required />
+          </label>
+
+          <label class="field-group">
+            <span>Password</span>
+            <input id="password" class="field login-field" type="password" autocomplete="current-password" placeholder="Enter your password" required />
+          </label>
+
+          <button type="submit" class="button login-submit">Sign in</button>
+          <p id="login-message" class="form-message login-message"></p>
+        </form>
+      </section>
+    </main>
+
+    <script src="/shared.js"></script>
+    <script src="/login.js"></script>
+  </body>
+</html>

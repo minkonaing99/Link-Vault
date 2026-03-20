@@ -9,21 +9,22 @@
   </head>
   <body data-page="editor">
     <div class="app-shell app-shell--narrow">
-      <header class="page-header">
+      <header class="page-header apple-header">
         <div class="page-heading">
           <span class="page-kicker">Link Vault</span>
           <h1 id="page-title" class="page-title">Add Link</h1>
-          <p class="page-subtitle">Create or update a saved link without clutter.</p>
+          <p class="page-subtitle">Create or update a saved link.</p>
         </div>
         <nav class="page-nav">
           <a class="page-nav__link" href="/">Home</a>
           <a class="page-nav__link" href="/browse.html">Browse</a>
           <a class="page-nav__link is-active" href="/editor.html">Add Link</a>
+          <button type="button" class="page-nav__link page-nav__button" id="logout-button">Logout</button>
         </nav>
       </header>
 
-      <main class="page-stack">
-        <section class="surface surface--form">
+      <main class="page-stack page-stack--airy editor-stack">
+        <section class="surface surface--soft surface--form editor-primary">
           <div class="section-header">
             <div>
               <h2 id="form-heading" class="section-title">Add a link</h2>
@@ -31,31 +32,31 @@
             </div>
           </div>
 
-          <form id="link-form" class="form-stack">
+          <form id="link-form" class="form-stack editor-form">
             <input type="hidden" id="link-id" />
 
             <label class="field-group">
               <span>URL</span>
-              <div class="toolbar-row toolbar-row--tight">
-                <input type="url" id="url" class="field" placeholder="https://example.com/article" required />
-                <button type="button" id="paste-clipboard" class="button button--ghost button--small">Paste clipboard</button>
-                <button type="button" id="fetch-title" class="button button--small">Fetch title</button>
+              <div class="toolbar-row toolbar-row--tight toolbar-row--stack-on-mobile editor-url-row">
+                <input type="url" id="url" class="field editor-field editor-url-input" placeholder="https://example.com/article" required />
+                <button type="button" id="paste-clipboard" class="button button--ghost button--small editor-action">Paste clipboard</button>
+                <button type="button" id="fetch-title" class="button button--small editor-action">Fetch title</button>
               </div>
             </label>
 
             <label class="field-group">
               <span>Title</span>
-              <input type="text" id="title" class="field" placeholder="Optional title" />
+              <input type="text" id="title" class="field editor-field" placeholder="Optional title" />
             </label>
 
             <div class="two-up">
               <label class="field-group">
                 <span>Date</span>
-                <input type="date" id="date" class="field" />
+                <input type="date" id="date" class="field editor-field" />
               </label>
               <label class="field-group">
                 <span>Status</span>
-                <select id="status" class="field field--select">
+                <select id="status" class="field field--select editor-field">
                   <option value="saved">Saved</option>
                   <option value="unread">Unread</option>
                   <option value="useful">Useful</option>
@@ -66,35 +67,30 @@
 
             <label class="field-group">
               <span>Tags</span>
-              <input type="text" id="tags" class="field" placeholder="security, cloud, certification" />
+              <input type="text" id="tags" class="field editor-field" placeholder="security, cloud, certification" />
             </label>
 
-            <label class="field-group">
-              <span>Notes</span>
-              <textarea id="notes" class="field field--textarea" rows="5" placeholder="Short note or why this matters"></textarea>
-            </label>
-
-            <div class="form-stack form-stack--tight">
-              <button type="submit" id="submit-button" class="button button--small">Save link</button>
+            <div class="form-stack form-stack--tight editor-submit-row">
+              <button type="submit" id="submit-button" class="button button--small editor-submit">Save link</button>
               <p id="form-message" class="form-message"></p>
             </div>
           </form>
         </section>
 
-        <section class="surface surface--nested">
+        <section class="surface surface--soft surface--nested editor-secondary">
           <div class="section-header section-header--compact">
             <div>
               <h2 class="section-title">Import / Export</h2>
               <p class="section-copy">Export JSON or paste multiple lines to batch import.</p>
             </div>
           </div>
-          <div class="form-stack form-stack--tight">
-            <a class="button button--small" href="/api/links/export">Export JSON</a>
+          <div class="form-stack form-stack--tight editor-utility">
+            <a class="button button--small button--ghost editor-export" href="/api/links/export">Export JSON</a>
             <label class="field-group">
               <span>Batch paste</span>
-              <textarea id="batch-input" class="field field--textarea field--compact-textarea" rows="4" placeholder="https://www.youtube.com | YouTube&#10;https://example.com/article | Example Article"></textarea>
+              <textarea id="batch-input" class="field field--textarea field--compact-textarea editor-field editor-batch" rows="4" placeholder="https://www.youtube.com | YouTube&#10;https://example.com/article | Example Article"></textarea>
             </label>
-            <button type="button" id="batch-import" class="button button--small">Import pasted lines</button>
+            <button type="button" id="batch-import" class="button button--small editor-import">Import pasted lines</button>
             <p id="import-message" class="form-message"></p>
           </div>
         </section>

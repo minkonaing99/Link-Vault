@@ -9,21 +9,22 @@
   </head>
   <body data-page="home">
     <div class="app-shell app-shell--narrow">
-      <header class="page-header">
+      <header class="page-header apple-header">
         <div class="page-heading">
           <span class="page-kicker">Link Vault</span>
-          <h1 class="page-title">Home</h1>
-          <p class="page-subtitle">A tidy place to save, browse, and revisit important links.</p>
+          <h1 class="page-title">Library</h1>
+          <p class="page-subtitle">Your saved links, in one calm place.</p>
         </div>
         <nav class="page-nav">
           <a class="page-nav__link is-active" href="/">Home</a>
           <a class="page-nav__link" href="/browse.html">Browse</a>
           <a class="page-nav__link" href="/editor.html">Add Link</a>
+          <button type="button" class="page-nav__link page-nav__button" id="logout-button">Logout</button>
         </nav>
       </header>
 
-      <main class="page-stack">
-        <section class="surface surface--compact">
+      <main class="page-stack page-stack--airy">
+        <section class="surface surface--soft">
           <div class="stats-grid stats-grid--3">
             <div class="stat-tile"><span>Total</span><strong id="total-count">0</strong></div>
             <div class="stat-tile"><span>Unread</span><strong id="unread-count">0</strong></div>
@@ -32,20 +33,20 @@
         </section>
 
         <section class="shortcut-grid">
-          <a class="surface shortcut-card" href="/browse.html">
-            <h2 class="section-title">Browse & Manage</h2>
-            <p class="section-copy">Search, filter, edit, and delete links.</p>
+          <a class="surface shortcut-card surface--soft" href="/browse.html">
+            <h2 class="section-title">Browse</h2>
+            <p class="section-copy">Search, filter, edit, and manage saved links.</p>
           </a>
-          <a class="surface shortcut-card" href="/editor.html">
-            <h2 class="section-title">Add New Link</h2>
-            <p class="section-copy">Save a URL, fetch title, and attach tags or notes.</p>
+          <a class="surface shortcut-card surface--soft" href="/editor.html">
+            <h2 class="section-title">Add new</h2>
+            <p class="section-copy">Save a URL with notes, tags, and status.</p>
           </a>
         </section>
 
-        <section class="surface">
+        <section class="surface surface--soft">
           <div class="section-header">
             <div>
-              <h2 class="section-title">Recent links</h2>
+              <h2 class="section-title">Recent</h2>
               <p class="section-copy">Latest saved items.</p>
             </div>
             <a class="button button--ghost button--small" href="/browse.html">Open library</a>

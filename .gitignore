@@ -12,15 +12,25 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+*Zone.Identifier
 
 # Environment files
 .env
+.env.local
+.env.*.local
 .env.*
+!.env.example
 
 # Temporary files
 *.tmp
 *.swp
 *.swo
+*.pid
+*.seed
+
+# Test/local artifacts
+*.cookies
+coverage/
 
 # Local helper scripts
 start-link-vault.sh

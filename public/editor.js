@@ -1,4 +1,4 @@
-const { getLinks, setMessage, parseTags, queryParam } = window.LinkVault;
+const { getLinks, setMessage, parseTags, queryParam, apiFetch } = window.LinkVault;
 
 const els = {
   form: document.getElementById('link-form'),
@@ -48,6 +48,13 @@ function parseBatchLines(text) {
     .filter(item => item.url);
 }
 
+async function fetchTitleMetadata(rawUrl) {
+  const res = await apiFetch(`/api/fetch-title?url=${encodeURIComponent(rawUrl)}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not fetch title');
+  return data;
+}
+
 async function loadForEdit() {
   const id = queryParam('id');
   if (!id) return;
@@ -71,7 +78,7 @@ els.form.addEventListener('submit', async event => {
   const editing = Boolean(els.id.value);
   setMessage(els.message, editing ? 'Saving changes...' : 'Saving...');
   try {
-    const res = await fetch(editing ? `/api/links/${encodeURIComponent(els.id.value)}` : '/api/links', {
+    const res = await apiFetch(editing ? `/api/links/${encodeURIComponent(els.id.value)}` : '/api/links', {
       method: editing ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload()),
@@ -92,9 +99,7 @@ async function fetchAndApplyTitle(rawUrl) {
   els.title.value = '';
   setMessage(els.message, 'Fetching title...');
   try {
-    const res = await fetch(`/api/fetch-title?url=${encodeURIComponent(rawUrl)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Could not fetch title');
+    const data = await fetchTitleMetadata(rawUrl);
     els.url.value = data.url || rawUrl;
     els.title.value = data.title || '';
     setMessage(els.message, 'Title fetched.', 'success');
@@ -128,7 +133,7 @@ els.pasteClipboard.addEventListener('click', async () => {
     els.url.value = url;
     setMessage(els.message, 'Link pasted from clipboard.', 'success');
     await fetchAndApplyTitle(url);
-  } catch (error) {
+  } catch {
     setMessage(els.message, 'Clipboard permission denied or unavailable.', 'error');
   }
 });
@@ -141,7 +146,6 @@ els.batchImport.addEventListener('click', async () => {
   if (!parsed.length) return setMessage(els.importMessage, 'No valid lines found.', 'error');
 
   setMessage(els.importMessage, `Preparing ${parsed.length} link(s)...`);
-
   const today = new Date().toISOString().slice(0, 10);
   const links = [];
 
@@ -173,7 +177,7 @@ els.batchImport.addEventListener('click', async () => {
   }
 
   try {
-    const res = await fetch('/api/links/import', {
+    const res = await apiFetch('/api/links/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ links }),

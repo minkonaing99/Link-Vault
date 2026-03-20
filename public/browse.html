@@ -9,22 +9,23 @@
   </head>
   <body data-page="browse">
     <div class="app-shell app-shell--narrow">
-      <header class="page-header">
+      <header class="page-header apple-header">
         <div class="page-heading">
           <span class="page-kicker">Link Vault</span>
           <h1 class="page-title">Browse</h1>
-          <p class="page-subtitle">Search, filter, and manage your saved links.</p>
+          <p class="page-subtitle">Search, filter, and manage your collection.</p>
         </div>
         <nav class="page-nav">
           <a class="page-nav__link" href="/">Home</a>
           <a class="page-nav__link is-active" href="/browse.html">Browse</a>
           <a class="page-nav__link" href="/editor.html">Add Link</a>
+          <button type="button" class="page-nav__link page-nav__button" id="logout-button">Logout</button>
         </nav>
       </header>
 
-      <main class="page-stack">
-        <section class="surface surface--compact">
-          <div class="toolbar-row">
+      <main class="page-stack page-stack--airy">
+        <section class="surface surface--soft">
+          <div class="toolbar-row toolbar-row--stack-on-mobile">
             <input id="search" class="field" type="search" placeholder="Search title, host, tags, notes, URL" />
             <select id="status-filter" class="field field--select">
               <option value="all">All statuses</option>
@@ -43,7 +44,7 @@
           </div>
         </section>
 
-        <section class="surface">
+        <section class="surface surface--soft">
           <div class="section-header">
             <div>
               <h2 class="section-title">Library</h2>

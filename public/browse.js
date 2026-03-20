@@ -58,7 +58,7 @@ function compareLinks(a, b, sortMode) {
 }
 
 async function togglePinned(item) {
-  const res = await fetch(`/api/links/${encodeURIComponent(item.id)}`, {
+  const res = await window.LinkVault.apiFetch(`/api/links/${encodeURIComponent(item.id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...item, pinned: !item.pinned }),
@@ -119,7 +119,7 @@ function buildRow(item) {
   node.querySelector('.edit-link').href = `/editor.html?id=${encodeURIComponent(item.id)}`;
   node.querySelector('.delete-button').addEventListener('click', async () => {
     if (!confirm(`Delete this link?\n\n${item.title}`)) return;
-    await fetch(`/api/links/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
+    await window.LinkVault.apiFetch(`/api/links/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
     await load();
   });
 
