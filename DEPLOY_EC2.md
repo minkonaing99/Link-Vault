@@ -4,11 +4,11 @@ Last updated: 2026-03-20
 
 This guide assumes:
 
-- Ubuntu EC2 instance
-- MongoDB already available, either local or hosted
+- Ubuntu 24.04 EC2 instance
+- local MongoDB on the same server
 - domain name optional
 - Node.js app served behind Nginx
-- PM2 used to keep the server running
+- `systemd` used to keep the server running
 
 ## 1. Launch and connect
 
@@ -22,7 +22,7 @@ ssh -i /path/to/your-key.pem ubuntu@YOUR_EC2_PUBLIC_IP
 
 ```bash
 sudo apt update
-sudo apt install -y nginx git curl
+sudo apt install -y nginx git curl gnupg
 ```
 
 Install Node.js 22:
@@ -32,28 +32,35 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
 ```
 
-Install PM2 globally:
+## 3. Install MongoDB 8.0
 
 ```bash
-sudo npm install -g pm2
+curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg --dearmor
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
+sudo apt update
+sudo apt install -y mongodb-org
+sudo systemctl enable mongod
+sudo systemctl start mongod
+sudo systemctl status mongod
 ```
 
-## 3. Clone the repo
+MongoDB should listen locally on `127.0.0.1:27017` by default.
+
+## 4. Clone the repo
 
 ```bash
-cd /var/www
-sudo git clone https://github.com/minkonaing99/Link-Vault.git link-vault
-sudo chown -R $USER:$USER /var/www/link-vault
-cd /var/www/link-vault
+cd ~
+git clone https://github.com/minkonaing99/Link-Vault.git link-vault
+cd ~/link-vault
 ```
 
-## 4. Install dependencies
+## 5. Install dependencies
 
 ```bash
 npm install
 ```
 
-## 5. Create production `.env`
+## 6. Create production `.env`
 
 Create:
 
@@ -81,24 +88,49 @@ Notes:
 
 - use a strong `JWT_SECRET`
 - do not reuse exposed passwords
-- if using MongoDB Atlas, replace `MONGODB_URI` with your production cluster URI
+- if you later switch back to MongoDB Atlas, replace `MONGODB_URI` with your production cluster URI
 
-## 6. Start the app with PM2
-
-```bash
-pm2 start server.js --name link-vault
-pm2 save
-pm2 startup
-```
-
-Verify:
+## 7. Create a systemd service
 
 ```bash
-pm2 status
-pm2 logs link-vault
+sudo nano /etc/systemd/system/link-vault.service
 ```
 
-## 7. Configure Nginx reverse proxy
+Use:
+
+```ini
+[Unit]
+Description=Link Vault
+After=network.target mongod.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/link-vault
+ExecStart=/usr/bin/node /home/ubuntu/link-vault/server.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start it:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable link-vault
+sudo systemctl restart link-vault
+sudo systemctl status link-vault
+```
+
+App logs:
+
+```bash
+journalctl -u link-vault -n 100 --no-pager
+```
+
+## 8. Configure Nginx reverse proxy
 
 Create a site config:
 
@@ -140,7 +172,7 @@ Then open:
 http://YOUR_DOMAIN_OR_IP
 ```
 
-## 8. Optional HTTPS with Let's Encrypt
+## 9. Optional HTTPS with Let's Encrypt
 
 Install Certbot:
 
@@ -154,7 +186,7 @@ Request a certificate:
 sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 ```
 
-## 9. Open EC2 security group ports
+## 10. Open EC2 security group ports
 
 Allow:
 
@@ -162,29 +194,36 @@ Allow:
 - `80` for HTTP
 - `443` for HTTPS if using SSL
 
-Do not expose MongoDB publicly unless you intentionally need that.
+Do not expose MongoDB publicly. Keep it bound to localhost only.
 
-## 10. Update the app later
+## 11. Update the app later
 
 ```bash
-cd /var/www/link-vault
-git pull origin main
+cd ~/link-vault
+git fetch origin
+git reset --hard origin/main
 npm install
-pm2 restart link-vault
+sudo systemctl restart link-vault
 ```
 
-## 11. Useful commands
+## 12. Useful commands
 
 App logs:
 
 ```bash
-pm2 logs link-vault
+journalctl -u link-vault -n 100 --no-pager
 ```
 
 Restart:
 
 ```bash
-pm2 restart link-vault
+sudo systemctl restart link-vault
+```
+
+MongoDB status:
+
+```bash
+sudo systemctl status mongod
 ```
 
 Nginx status:
