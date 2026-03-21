@@ -24,24 +24,6 @@ It supports a built-in web UI and can also act as the backend for an iOS app usi
 
 Link Vault uses MongoDB only. Legacy JSON storage is disabled.
 
-## Environment
-
-Create a local `.env` file:
-
-```bash
-MONGODB_URI=mongodb://127.0.0.1:27017
-MONGODB_DB_NAME=linkvault
-PORT=3090
-AUTH_COOKIE_NAME=linkvault_session
-AUTH_SESSION_TTL_DAYS=30
-ACCESS_TOKEN_TTL_MINUTES=15
-REFRESH_TOKEN_TTL_DAYS=30
-JWT_TTL_DAYS=30
-JWT_SECRET=replace-with-a-long-random-secret
-LINKVAULT_ADMIN_USERNAME=thomas
-LINKVAULT_ADMIN_PASSWORD=change-this-now
-```
-
 ### Important
 
 - keep `.env` out of git
