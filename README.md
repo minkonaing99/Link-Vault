@@ -1,98 +1,129 @@
 # Link Vault
 
-Last updated: 2026-03-20
+Last updated: 2026-03-21
 
-Link Vault is a private link library built with:
+Link Vault is a private website for saving, organizing, and revisiting useful links in one clean library.
 
-- plain Node.js HTTP server
+It is designed for people who want a calmer alternative to messy browser bookmarks, scattered notes, or saving links across multiple apps. The project includes a built-in web interface and a JSON API, so the same database can later be used by a mobile app such as iOS.
+
+## What The Website Does
+
+Link Vault helps you collect links and keep them easy to find later.
+
+You can:
+
+- save links with a title, status, tags, and date
+- auto-fetch the page title from a pasted URL
+- browse saved links in a cleaner library view
+- search, filter, sort, pin, edit, restore, and soft-delete links
+- export data as JSON
+- use the same backend for both the website and future mobile clients
+
+## Main Pages
+
+### Home
+
+The home page gives a compact overview of your library. It includes summary cards, recent items, and a quick-add input for saving a link fast.
+
+### Browse
+
+The browse page is the main library view. It is built for scanning links quickly, filtering by status or tag, and managing items without leaving the page.
+
+### Add Link
+
+The add-link page is used for creating or updating saved links with a more complete form.
+
+### Login
+
+The login page protects the site behind private authentication and keeps the library limited to approved users.
+
+## Core Features
+
+### Private Authentication
+
+The website supports browser login using secure session cookies. The backend also supports token-based authentication for mobile or external clients.
+
+### Link Organization
+
+Each saved item is structured for long-term use instead of simple bookmarking. Links can be tagged, pinned, marked by status, and filtered later.
+
+### Auto Title Fetching
+
+When a URL is added, the app can fetch the page title automatically to reduce manual typing and keep entries consistent.
+
+### Search And Filtering
+
+The library supports search, pagination, filtering, sorting, and sync-friendly queries such as `updatedAfter`.
+
+### Soft Delete And Restore
+
+Links are soft-deleted by default, which makes it easier to support recovery and future app sync behavior.
+
+### API-Ready Backend
+
+The backend is structured so the website and an iOS app can use the same MongoDB database and the same API.
+
+## Tech Stack
+
+Link Vault is built with:
+
+- Node.js
+- a plain HTTP server
 - MongoDB
-- cookie-based web auth for the browser UI
-- bearer access tokens plus refresh tokens for mobile or external clients
+- vanilla HTML, CSS, and JavaScript on the frontend
+- `bcryptjs` for password hashing
+- JWT access tokens plus refresh tokens for app clients
 
-It supports a built-in web UI and can also act as the backend for an iOS app using the same database.
+## Data Model Notes
 
-## Features
+Links are stored in MongoDB and include sync-friendly timestamps.
 
-- save, edit, browse, restore, and soft-delete links
-- tags, status, pinning, and URL cleanup
-- auto-fetch page titles
-- bulk import and JSON export
-- paginated API queries with search, filters, sort, and sync-friendly `updatedAfter`
-- private browser login plus token auth for app clients
+Key fields include:
 
-## Storage
+- `url`
+- `title`
+- `tags`
+- `status`
+- `pinned`
+- `createdAt`
+- `updatedAt`
+- `deletedAt`
 
-Link Vault uses MongoDB only. Legacy JSON storage is disabled.
+## Authentication Modes
 
-### Important
+### Browser Sessions
 
-- keep `.env` out of git
-- use a long random `JWT_SECRET`
-- rotate secrets if they were exposed
+The website uses cookie-based login for the browser UI.
 
-## Install and run
+### Mobile Or External Clients
 
-```bash
-npm install
-npm start
-```
+The API also supports bearer access tokens with refresh tokens, which makes it suitable for an iOS app or other clients using the same backend.
 
-Default local URL:
+## API Overview
 
-```text
-http://localhost:3090
-```
+The project exposes private JSON API routes under:
 
-## Authentication
+- `/api/...`
+- `/api/v1/...`
 
-Link Vault supports two auth modes.
+Main API groups:
 
-### 1. Cookie session auth
+- login, logout, and identity
+- token and refresh-token auth
+- link listing with pagination and filters
+- create, update, soft delete, restore, and hard delete
+- title fetching
+- import and export
 
-Used by the browser UI.
+Full API details are documented in [API.md](./API.md).
 
-- login page: `/login.html`
-- logout endpoint: `POST /api/logout`
-- session lifetime controlled by `AUTH_SESSION_TTL_DAYS`
+## Product Direction
 
-### 2. Mobile/API token auth
+Link Vault is intended to be more than a simple bookmark page. The long-term direction is a personal link library with:
 
-Used by iOS apps or other clients.
+- a private web interface
+- mobile app support
+- shared API access
+- sync-friendly data handling
 
-- login for token pair: `POST /api/auth/token`
-- refresh access token: `POST /api/auth/refresh`
-- revoke refresh token: `POST /api/auth/logout`
-
-## API
-
-See full API documentation here:
-
-- [API.md](./API.md)
-- [DEPLOY_EC2.md](./DEPLOY_EC2.md)
-
-Main endpoint groups:
-
-- auth: `/api/auth/...` and `/api/v1/auth/...`
-- links: `/api/links...` and `/api/v1/links...`
-
-## Deployment
-
-For an Ubuntu EC2 deployment guide with Nginx and PM2:
-
-- [DEPLOY_EC2.md](./DEPLOY_EC2.md)
-
-## Current implementation notes
-
-- password hashing uses `bcryptjs`
-- browser sessions are stored in MongoDB
-- refresh tokens are stored in MongoDB and can be revoked
-- access tokens are JWTs signed with `JWT_SECRET`
-- links include `createdAt`, `updatedAt`, and `deletedAt`
-- link deletes are soft deletes by default
-
-## Recommended next improvements
-
-- add per-user link ownership for multi-user support
-- add CORS configuration if the mobile app is served from a different origin pattern
-- add automated API tests for auth, validation, filtering, and restore flows
-- add conflict-aware sync semantics if the iOS app will support offline edits
+That makes the current website a usable product on its own while also serving as the backend foundation for future iOS development.
