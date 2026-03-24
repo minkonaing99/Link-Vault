@@ -9,14 +9,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Link Vault</title>
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body data-page="home">
     <div class="app-shell app-shell--narrow">
       <header class="page-header">
         <div class="page-bar">
           <div class="page-bar__identity">
-            <img class="brand-mark" src="/logo-mark.png" alt="Link Vault logo" />
+            <img class="brand-mark" src="/img/logo-mark.png" alt="Link Vault logo" />
             <span class="page-kicker">Link Vault</span>
           </div>
           <button type="button" class="button button--ghost button--small button--logout" id="logout-button">Logout</button>
@@ -30,13 +30,6 @@
 
       <main class="page-stack page-stack--airy">
         <section class="surface surface--soft surface--group">
-          <div class="stats-grid stats-grid--2">
-            <div class="stat-tile"><span>Total</span><strong id="total-count">0</strong></div>
-            <div class="stat-tile"><span>Useful</span><strong id="useful-count">0</strong></div>
-          </div>
-        </section>
-
-        <section class="surface surface--soft surface--group">
           <div class="section-header section-header--stack">
             <div>
               <h2 class="section-title">Quick Add</h2>
@@ -46,7 +39,7 @@
           <form id="quick-add-form" class="form-stack form-stack--tight">
             <div class="quick-entry">
               <input id="quick-add-url" class="field quick-add-row__input" type="url" inputmode="url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://example.com/article" required />
-              <button type="button" id="quick-add-paste" class="button button--small quick-add-row__button">Paste</button>
+              <button type="button" id="quick-add-paste" class="button button--ghost quick-add-row__button">Paste</button>
             </div>
             <p id="quick-add-message" class="form-message"></p>
           </form>
@@ -75,7 +68,7 @@
               <h2 class="section-title">Recent</h2>
               <p class="section-copy">Latest saved items.</p>
             </div>
-            <a class="button button--ghost button--small" href="/browse.html">Open library</a>
+            <a class="button button--ghost" href="/browse.html">Open library</a>
           </div>
           <div id="recent-links" class="recent-list"></div>
         </section>
@@ -98,7 +91,7 @@
       </article>
     </template>
 
-    <script src="/shared.js"></script>
-    <script src="/home.js"></script>
+    <script src="/js/shared.js"></script>
+    <script src="/js/home.js"></script>
   </body>
 </html>

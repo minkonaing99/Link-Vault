@@ -1,7 +1,5 @@
 const { getLinks, safeHost, apiFetch, setMessage } = window.LinkVault;
 
-const totalCount = document.getElementById('total-count');
-const usefulCount = document.getElementById('useful-count');
 const recentLinks = document.getElementById('recent-links');
 const template = document.getElementById('link-template');
 const quickAddForm = document.getElementById('quick-add-form');
@@ -20,9 +18,10 @@ function applyStatusStyles(dot, textEl, status) {
 }
 
 function updateSummary(links) {
-  totalCount.textContent = String(links.length);
-  usefulCount.textContent = String(links.filter(l => l.status === 'useful').length);
-  renderRecent(links.slice(0, 5));
+  const recent = links.slice().sort((a, b) =>
+    String(b.updatedAt || b.date || '').localeCompare(String(a.updatedAt || a.date || ''))
+  ).slice(0, 5);
+  renderRecent(recent);
 }
 
 function renderRecent(items) {

@@ -9,14 +9,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Add or Edit Link · Link Vault</title>
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body data-page="editor">
     <div class="app-shell app-shell--narrow">
       <header class="page-header">
         <div class="page-bar">
           <div class="page-bar__identity">
-            <img class="brand-mark" src="/logo-mark.png" alt="Link Vault logo" />
+            <img class="brand-mark" src="/img/logo-mark.png" alt="Link Vault logo" />
             <span class="page-kicker">Link Vault</span>
           </div>
           <button type="button" class="button button--ghost button--small button--logout" id="logout-button">Logout</button>
@@ -45,8 +45,8 @@
                 <span>URL</span>
                 <div class="quick-entry quick-entry--stretch">
                   <input type="url" id="url" class="field editor-field editor-url-input" inputmode="url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://example.com/article" required />
-                  <button type="button" id="paste-clipboard" class="button button--ghost button--small editor-action">Paste</button>
-                  <button type="button" id="fetch-title" class="button button--small editor-action">Fetch</button>
+                  <button type="button" id="paste-clipboard" class="button button--ghost editor-action">Paste</button>
+                  <button type="button" id="fetch-title" class="button editor-action">Fetch</button>
                 </div>
               </label>
 
@@ -104,7 +104,7 @@
       </main>
     </div>
 
-    <script src="/shared.js"></script>
-    <script src="/editor.js"></script>
+    <script src="/js/shared.js"></script>
+    <script src="/js/editor.js"></script>
   </body>
 </html>

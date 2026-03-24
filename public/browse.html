@@ -9,14 +9,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Browse Links · Link Vault</title>
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body data-page="browse">
     <div class="app-shell app-shell--narrow">
       <header class="page-header">
         <div class="page-bar">
           <div class="page-bar__identity">
-            <img class="brand-mark" src="/logo-mark.png" alt="Link Vault logo" />
+            <img class="brand-mark" src="/img/logo-mark.png" alt="Link Vault logo" />
             <span class="page-kicker">Link Vault</span>
           </div>
           <button type="button" class="button button--ghost button--small button--logout" id="logout-button">Logout</button>
@@ -46,7 +46,7 @@
                 <option value="title-asc">Title A-Z</option>
                 <option value="title-desc">Title Z-A</option>
               </select>
-              <a class="button button--small" href="/editor.html">Add new</a>
+              <a class="button" href="/editor.html">Add new</a>
             </div>
           </div>
         </section>
@@ -57,7 +57,7 @@
               <h2 class="section-title">Library</h2>
               <p class="section-copy"><span id="visible-count">0</span> visible of <span id="total-count">0</span> total</p>
             </div>
-            <a class="button button--ghost button--small" href="/api/links/export">Export JSON</a>
+            <a class="button button--ghost" href="/api/links/export">Export JSON</a>
           </div>
           <div id="link-list" class="list-stack list-stack--tight list-stack--rows"></div>
         </section>
@@ -95,7 +95,7 @@
       </article>
     </template>
 
-    <script src="/shared.js"></script>
-    <script src="/browse.js"></script>
+    <script src="/js/shared.js"></script>
+    <script src="/js/browse.js"></script>
   </body>
 </html>

@@ -277,7 +277,7 @@ input, textarea, select {
 }
 
 .editor-submit {
-  min-height: 38px;
+  width: 100%;
   padding: 0 14px;
 }
 
@@ -287,7 +287,7 @@ input, textarea, select {
 
 .editor-export,
 .editor-import {
-  min-height: 38px;
+  width: 100%;
 }
 
 .section-header {
@@ -933,5 +933,8 @@ textarea.field {
   .login-field,
   .login-submit {
     min-height: 42px;
+  }
+  .section-header .button {
+    flex: 1 1 100%;
   }
 }
