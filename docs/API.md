@@ -1,8 +1,8 @@
-# Link Vault API
+# LinksVault API
 
 Last updated: 2026-03-20
 
-Link Vault exposes a private JSON API for:
+LinksVault exposes a private JSON API for:
 
 - the built-in web UI using cookie sessions
 - mobile or external clients using bearer access tokens plus refresh tokens

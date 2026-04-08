@@ -58,6 +58,27 @@ async function fetchTitleMetadata(rawUrl) {
   return data;
 }
 
+function renderStats(stats) {
+  const grid = document.getElementById('stats-grid');
+  if (!grid) return;
+  const items = [
+    { label: 'Total',    value: stats.total    },
+    { label: 'Unread',   value: stats.unread   },
+    { label: 'Useful',   value: stats.useful   },
+  ];
+  grid.innerHTML = items.map(({ label, value }) =>
+    `<div class="stat-tile"><span>${label}</span><strong>${value}</strong></div>`
+  ).join('');
+}
+
+async function loadStats() {
+  try {
+    const res = await apiFetch('/api/stats');
+    if (!res.ok) return;
+    renderStats(await res.json());
+  } catch {}
+}
+
 async function loadHome() {
   const links = await getLinks();
   updateSummary(links);
@@ -130,5 +151,9 @@ quickAddPaste.addEventListener('click', async () => {
     setMessage(quickAddMessage, 'Clipboard permission denied or unavailable.', 'error');
   }
 });
+
+if (window.LinkVault.initPullToRefresh) {
+  window.LinkVault.initPullToRefresh(() => loadHome());
+}
 
 loadHome().catch(console.error);

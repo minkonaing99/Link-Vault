@@ -7,8 +7,11 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <title>Browse Links · Link Vault</title>
+    <meta name="apple-mobile-web-app-title" content="LinksVault" />
+    <title>Browse Links · LinksVault</title>
+    <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body data-page="browse">
@@ -16,8 +19,8 @@
       <header class="page-header">
         <div class="page-bar">
           <div class="page-bar__identity">
-            <img class="brand-mark" src="/img/logo-mark.png" alt="Link Vault logo" />
-            <span class="page-kicker">Link Vault</span>
+            <img class="brand-mark" src="/img/logo-mark.png" alt="LinksVault logo" />
+            <span class="page-kicker">LinksVault</span>
           </div>
           <button type="button" class="button button--ghost button--small button--logout" id="logout-button">Logout</button>
         </div>
@@ -55,11 +58,19 @@
           <div class="section-header">
             <div>
               <h2 class="section-title">Library</h2>
-              <p class="section-copy"><span id="visible-count">0</span> visible of <span id="total-count">0</span> total</p>
+              <p class="section-copy"><span id="visible-count">0</span> loaded of <span id="total-count">0</span> total</p>
             </div>
-            <a class="button button--ghost" href="/api/links/export">Export JSON</a>
+            <div class="browse-actions">
+              <button type="button" id="check-links-btn" class="button button--ghost">Check links</button>
+              <a class="button button--ghost" href="/archive.html">Archive</a>
+              <a class="button button--ghost" href="/api/links/export">Export</a>
+            </div>
           </div>
+          <div id="health-panel" class="health-panel hidden"></div>
           <div id="link-list" class="list-stack list-stack--tight list-stack--rows"></div>
+          <div id="load-more-wrap" class="load-more-wrap hidden">
+            <button type="button" id="load-more" class="button button--ghost">Load more</button>
+          </div>
         </section>
       </main>
     </div>
@@ -74,6 +85,7 @@
             <a class="library-row__title" target="_blank" rel="noreferrer"></a>
           </div>
           <div class="library-row__meta">
+            <img class="link-favicon" src="" alt="" loading="lazy" />
             <span class="link-host"></span>
             <span>&bull;</span>
             <span class="link-date"></span>

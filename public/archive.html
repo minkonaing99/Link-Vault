@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f2f2f7" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="LinksVault" />
+    <title>Archive · LinksVault</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body data-page="archive">
+    <div class="app-shell app-shell--narrow">
+      <header class="page-header">
+        <div class="page-bar">
+          <div class="page-bar__identity">
+            <img class="brand-mark" src="/img/logo-mark.png" alt="LinksVault logo" />
+            <span class="page-kicker">LinksVault</span>
+          </div>
+          <button type="button" class="button button--ghost button--small button--logout" id="logout-button">Logout</button>
+        </div>
+        <nav class="segmented-nav" aria-label="Primary">
+          <a class="segmented-nav__item" href="/">Home</a>
+          <a class="segmented-nav__item" href="/browse.html">Browse</a>
+          <a class="segmented-nav__item" href="/editor.html">Add Link</a>
+        </nav>
+      </header>
+
+      <main class="page-stack page-stack--airy">
+        <section class="surface surface--soft surface--group">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Archive</h2>
+              <p class="section-copy"><span id="total-count">0</span> deleted links</p>
+            </div>
+            <a class="button button--ghost" href="/browse.html">← Browse</a>
+          </div>
+          <div id="link-list" class="list-stack list-stack--tight list-stack--rows"></div>
+          <div id="load-more-wrap" class="load-more-wrap hidden">
+            <button type="button" id="load-more" class="button button--ghost">Load more</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="archive-template">
+      <article class="library-row">
+        <div class="library-row__status">
+          <span class="status-dot status-dot--archived"></span>
+        </div>
+        <div class="library-row__main">
+          <div class="library-row__title-line">
+            <a class="library-row__title" target="_blank" rel="noreferrer"></a>
+          </div>
+          <div class="library-row__meta">
+            <span class="link-host"></span>
+            <span>&bull;</span>
+            <span class="link-date"></span>
+            <span>&bull;</span>
+            <span class="deleted-at"></span>
+          </div>
+        </div>
+        <div class="library-row__tail archive-actions">
+          <button type="button" class="button button--ghost button--small restore-button">Restore</button>
+          <button type="button" class="button button--ghost button--small button--danger hard-delete-button">Delete</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="/js/shared.js"></script>
+    <script src="/js/archive.js"></script>
+  </body>
+</html>

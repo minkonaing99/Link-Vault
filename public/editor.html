@@ -7,8 +7,11 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <title>Add or Edit Link · Link Vault</title>
+    <meta name="apple-mobile-web-app-title" content="LinksVault" />
+    <title>Add or Edit Link · LinksVault</title>
+    <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body data-page="editor">
@@ -16,8 +19,8 @@
       <header class="page-header">
         <div class="page-bar">
           <div class="page-bar__identity">
-            <img class="brand-mark" src="/img/logo-mark.png" alt="Link Vault logo" />
-            <span class="page-kicker">Link Vault</span>
+            <img class="brand-mark" src="/img/logo-mark.png" alt="LinksVault logo" />
+            <span class="page-kicker">LinksVault</span>
           </div>
           <button type="button" class="button button--ghost button--small button--logout" id="logout-button">Logout</button>
         </div>
@@ -85,14 +88,18 @@
         </section>
 
         <section class="surface surface--soft surface--group editor-secondary">
-          <div class="section-header section-header--stack">
-            <div>
-              <h2 class="section-title">Import / Export</h2>
-              <p class="section-copy">Export JSON or paste multiple lines to batch import.</p>
-            </div>
-          </div>
-          <div class="form-stack form-stack--tight editor-utility">
+          <button type="button" id="import-export-toggle" class="import-export-toggle">
+            <span>Import / Export</span>
+            <span class="import-export-toggle__chevron">›</span>
+          </button>
+          <div id="import-export-body" class="form-stack form-stack--tight editor-utility hidden">
             <a class="button button--ghost editor-export" href="/api/links/export">Export JSON</a>
+            <label class="field-group">
+              <span>Browser bookmarks</span>
+              <input type="file" id="bookmarks-file" class="field editor-field" accept=".html,.htm" />
+            </label>
+            <button type="button" id="bookmarks-import" class="button editor-import">Import bookmarks file</button>
+            <p id="bookmarks-message" class="form-message"></p>
             <label class="field-group">
               <span>Batch paste</span>
               <textarea id="batch-input" class="field field--textarea field--compact-textarea editor-field editor-batch" rows="4" placeholder="https://www.youtube.com | YouTube&#10;https://example.com/article | Example Article"></textarea>

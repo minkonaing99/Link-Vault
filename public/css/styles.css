@@ -1,4 +1,4 @@
-/* Link Vault design system */
+/* LinksVault design system */
 :root {
   --bg: #f2f2f7;
   --surface: rgba(255, 255, 255, 0.86);
@@ -938,3 +938,162 @@ textarea.field {
     flex: 1 1 100%;
   }
 }
+
+/* Link favicon in meta row */
+.link-favicon {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+/* Tag click-to-filter */
+.badge.tag {
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+.badge.tag:active { opacity: 0.6; }
+
+/* Load more button */
+.load-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 10px 10px 14px;
+}
+
+/* Pull-to-refresh indicator */
+.ptr-indicator {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgba(17, 17, 17, 0.13);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s ease;
+  z-index: 300;
+  pointer-events: none;
+  overflow: hidden;
+}
+.ptr-indicator.ptr-visible {
+  transform: translateX(-50%) translateY(0);
+}
+.ptr-indicator::after {
+  content: '↓';
+  font-size: 15px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.ptr-indicator.ptr-spinning::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-soft);
+  border-top-color: var(--accent);
+  animation: ptr-spin 0.7s linear infinite;
+}
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Import / Export collapsible toggle */
+.import-export-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.import-export-toggle:hover { opacity: 0.75; }
+.import-export-toggle__chevron {
+  font-size: 20px;
+  color: var(--muted);
+  transition: transform 200ms ease;
+  line-height: 1;
+}
+.import-export-toggle.is-open .import-export-toggle__chevron {
+  transform: rotate(90deg);
+}
+
+/* Browse action buttons row */
+.browse-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Archive row tail */
+.archive-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+/* Health check panel */
+.health-panel {
+  margin: 0 10px 10px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.health-panel.hidden { display: none; }
+.health-panel--loading { background: rgba(118,118,128,0.08); color: var(--muted); }
+.health-panel--ok { background: rgba(31,156,85,0.1); color: var(--success); font-weight: 600; }
+.health-panel--error { background: rgba(214,64,69,0.08); color: var(--danger); }
+.health-panel--broken { background: rgba(214,64,69,0.06); }
+.health-summary {
+  margin: 0 0 10px;
+  font-weight: 700;
+  color: var(--danger);
+}
+.health-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.health-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+}
+.health-item__label {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(214,64,69,0.12);
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 11px;
+}
+.health-item__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  text-decoration: none;
+}
+.health-item__title:hover { text-decoration: underline; }

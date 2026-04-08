@@ -17,6 +17,9 @@ const els = {
   batchInput: document.getElementById('batch-input'),
   batchImport: document.getElementById('batch-import'),
   importMessage: document.getElementById('import-message'),
+  bookmarksFile: document.getElementById('bookmarks-file'),
+  bookmarksImport: document.getElementById('bookmarks-import'),
+  bookmarksMessage: document.getElementById('bookmarks-message'),
 };
 
 els.date.value = new Date().toISOString().slice(0, 10);
@@ -193,4 +196,51 @@ els.batchImport.addEventListener('click', async () => {
   }
 });
 
+async function loadFromShareParams() {
+  if (queryParam('id')) return;
+  const urlParam = queryParam('url');
+  if (!urlParam) return;
+  els.url.value = urlParam;
+  const titleParam = queryParam('title');
+  if (titleParam) {
+    els.title.value = titleParam;
+  } else {
+    await fetchAndApplyTitle(urlParam);
+  }
+}
+
+const importExportToggle = document.getElementById('import-export-toggle');
+const importExportBody   = document.getElementById('import-export-body');
+if (importExportToggle && importExportBody) {
+  importExportToggle.addEventListener('click', () => {
+    const open = !importExportBody.classList.contains('hidden');
+    importExportBody.classList.toggle('hidden', open);
+    importExportToggle.classList.toggle('is-open', !open);
+  });
+}
+
+if (els.bookmarksImport) {
+  els.bookmarksImport.addEventListener('click', async () => {
+    const file = els.bookmarksFile?.files?.[0];
+    if (!file) return setMessage(els.bookmarksMessage, 'Choose a bookmarks HTML file first.', 'error');
+    setMessage(els.bookmarksMessage, 'Reading file…');
+    try {
+      const html = await file.text();
+      setMessage(els.bookmarksMessage, 'Importing…');
+      const res = await apiFetch('/api/links/import-bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Import failed');
+      setMessage(els.bookmarksMessage, `Imported ${data.imported} of ${data.parsed} bookmarks.`, 'success');
+      if (els.bookmarksFile) els.bookmarksFile.value = '';
+    } catch (err) {
+      setMessage(els.bookmarksMessage, err.message, 'error');
+    }
+  });
+}
+
 loadForEdit().catch(console.error);
+loadFromShareParams().catch(console.error);

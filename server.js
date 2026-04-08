@@ -25,8 +25,8 @@ const REFRESH_TOKEN_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS || JWT_
 const JWT_SECRET = String(process.env.JWT_SECRET || '').trim();
 const ADMIN_USERNAME = String(process.env.LINKVAULT_ADMIN_USERNAME || '').trim();
 const ADMIN_PASSWORD = String(process.env.LINKVAULT_ADMIN_PASSWORD || '').trim();
-const PROTECTED_PAGES = new Set(['/browse.html', '/editor.html', '/']);
-const PUBLIC_PAGES = new Set(['/login.html']);
+const PROTECTED_PAGES = new Set(['/browse.html', '/editor.html', '/archive.html', '/']);
+const PUBLIC_PAGES = new Set(['/login.html', '/offline.html']);
 const ENTRY_TITLE_MAX_LENGTH = 300;
 const ENTRY_TAG_MAX_LENGTH = 50;
 const ENTRY_TAGS_MAX_COUNT = 20;
@@ -34,11 +34,11 @@ const LIST_LIMIT_DEFAULT = 50;
 const LIST_LIMIT_MAX = 200;
 
 if (!MONGODB_URI) {
-  throw new Error('Missing MONGODB_URI. Put it in .env or the environment before starting Link Vault.');
+  throw new Error('Missing MONGODB_URI. Put it in .env or the environment before starting LinksVault.');
 }
 
 if (!JWT_SECRET) {
-  throw new Error('Missing JWT_SECRET. Put it in .env before starting Link Vault.');
+  throw new Error('Missing JWT_SECRET. Put it in .env before starting LinksVault.');
 }
 
 let mongoClient;
@@ -515,7 +515,7 @@ async function ensureAdminUser() {
 
   if (!existing) {
     await usersCollection.insertOne({ id: makeId(), username: ADMIN_USERNAME, passwordHash, createdAt: timestamp, updatedAt: timestamp });
-    console.log(`Created Link Vault admin user: ${ADMIN_USERNAME}`);
+    console.log(`Created LinksVault admin user: ${ADMIN_USERNAME}`);
     return;
   }
 
@@ -523,7 +523,7 @@ async function ensureAdminUser() {
     $set: { passwordHash, updatedAt: timestamp },
     $setOnInsert: { id: makeId(), createdAt: timestamp },
   }, { upsert: true });
-  console.log(`Synced Link Vault admin credentials for: ${ADMIN_USERNAME}`);
+  console.log(`Synced LinksVault admin credentials for: ${ADMIN_USERNAME}`);
 }
 
 async function authenticateUser(username, password) {
@@ -780,6 +780,31 @@ async function restoreLink(id) {
   return normalizeStoredEntry(next);
 }
 
+function parseBookmarksHtml(html) {
+  const links = [];
+  const regex = /<a\b([^>]*)>([^<]*)<\/a>/gi;
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    const attrs = match[1];
+    const rawTitle = match[2].trim();
+    const hrefMatch = attrs.match(/href="([^"]+)"/i);
+    if (!hrefMatch) continue;
+    const url = hrefMatch[1].trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) continue;
+    try { new URL(url); } catch { continue; }
+    let date = new Date().toISOString().slice(0, 10);
+    const dateMatch = attrs.match(/add_date="(\d+)"/i);
+    if (dateMatch) {
+      const d = new Date(Number(dateMatch[1]) * 1000);
+      if (!isNaN(d.getTime()) && d.getFullYear() > 1990) {
+        date = d.toISOString().slice(0, 10);
+      }
+    }
+    links.push({ url, title: rawTitle || url, date, status: 'saved', tags: [] });
+  }
+  return links;
+}
+
 function isRoute(pathname, ...candidates) {
   return candidates.includes(pathname);
 }
@@ -879,6 +904,22 @@ const server = http.createServer(async (req, res) => {
     if (!auth) return;
   }
 
+  if (req.method === 'GET' && isRoute(reqUrl.pathname, '/api/stats', '/api/v1/stats')) {
+    try {
+      await connectDb();
+      const [total, unread, saved, useful, archived] = await Promise.all([
+        linksCollection.countDocuments({ deletedAt: null }),
+        linksCollection.countDocuments({ deletedAt: null, status: 'unread' }),
+        linksCollection.countDocuments({ deletedAt: null, status: 'saved' }),
+        linksCollection.countDocuments({ deletedAt: null, status: 'useful' }),
+        linksCollection.countDocuments({ deletedAt: null, status: 'archived' }),
+      ]);
+      return sendJson(res, 200, { total, unread, saved, useful, archived });
+    } catch (error) {
+      return sendJson(res, 500, { error: error.message });
+    }
+  }
+
   if (req.method === 'GET' && linksBasePath) {
     try {
       const query = parseLinkListQuery(reqUrl.searchParams);
@@ -911,6 +952,46 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.method === 'GET' && isRoute(reqUrl.pathname, '/api/links/check-health', '/api/v1/links/check-health')) {
+    try {
+      await connectDb();
+      const limit = parsePositiveInt(reqUrl.searchParams.get('limit'), 100, 1, 200);
+      const docs = await linksCollection
+        .find({ deletedAt: null }, { projection: { _id: 0, id: 1, url: 1, title: 1 } })
+        .sort({ updatedAt: -1 })
+        .limit(limit)
+        .toArray();
+
+      const BATCH = 8;
+      const results = [];
+      for (let i = 0; i < docs.length; i += BATCH) {
+        const batch = docs.slice(i, i + BATCH);
+        const settled = await Promise.allSettled(batch.map(async doc => {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 7000);
+          try {
+            const r = await fetch(doc.url, {
+              method: 'HEAD',
+              signal: controller.signal,
+              redirect: 'follow',
+              headers: { 'User-Agent': 'LinksVault/0.1 (+health-check)' },
+            });
+            clearTimeout(timer);
+            return { id: doc.id, url: doc.url, title: doc.title, ok: r.ok, status: r.status };
+          } catch (err) {
+            clearTimeout(timer);
+            return { id: doc.id, url: doc.url, title: doc.title, ok: false, status: 0,
+              error: err.name === 'AbortError' ? 'timeout' : 'unreachable' };
+          }
+        }));
+        results.push(...settled.map(s => s.status === 'fulfilled' ? s.value : { ok: false, error: 'failed' }));
+      }
+      return sendJson(res, 200, { total: results.length, broken: results.filter(r => !r.ok).length, checks: results });
+    } catch (error) {
+      return sendJson(res, 500, { error: error.message });
+    }
+  }
+
   if (req.method === 'GET' && isRoute(reqUrl.pathname, '/api/fetch-title', '/api/v1/fetch-title')) {
     try {
       const targetUrl = reqUrl.searchParams.get('url');
@@ -938,6 +1019,20 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, ...result });
     } catch (error) {
       return sendJson(res, 400, { error: error.message });
+    }
+  }
+
+  if (req.method === 'POST' && isRoute(reqUrl.pathname, '/api/links/import-bookmarks', '/api/v1/links/import-bookmarks')) {
+    try {
+      const body = ensurePlainObject(await parseBody(req));
+      const html = String(body.html || '');
+      if (!html) return sendJson(res, 400, { error: 'html field is required' });
+      const bookmarks = parseBookmarksHtml(html);
+      if (!bookmarks.length) return sendJson(res, 400, { error: 'No valid bookmarks found in the file' });
+      const result = await importLinks(bookmarks);
+      return sendJson(res, 200, { ok: true, ...result, parsed: bookmarks.length });
+    } catch (error) {
+      return sendJson(res, error.statusCode || 400, error.payload || { error: error.message });
     }
   }
 
@@ -985,6 +1080,20 @@ const server = http.createServer(async (req, res) => {
     if (auth) return sendRedirect(res, '/browse.html');
   }
 
+  if (req.method === 'GET' && reqUrl.pathname === '/sw.js') {
+    const swPath = path.join(PUBLIC_DIR, 'sw.js');
+    fs.readFile(swPath, (err, data) => {
+      if (err) return sendJson(res, 404, { error: 'Not found' });
+      res.writeHead(200, {
+        'Content-Type': 'application/javascript; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Service-Worker-Allowed': '/',
+      });
+      res.end(data);
+    });
+    return;
+  }
+
   const requested = reqUrl.pathname === '/' ? '/index.html' : reqUrl.pathname;
   const safePath = path.normalize(requested).replace(/^([.][.][/\\])+/, '');
   const filePath = path.join(PUBLIC_DIR, safePath);
@@ -1000,7 +1109,7 @@ async function start() {
   await connectDb();
   await ensureAdminUser();
   server.listen(PORT, () => {
-    console.log(`Link Vault running at http://localhost:${PORT}`);
+    console.log(`LinksVault running at http://localhost:${PORT}`);
     console.log(`Using MongoDB database: ${DB_NAME}.${COLLECTION_NAME}`);
     console.log('Legacy JSON fallback is disabled.');
     console.log('Auth enabled with cookie sessions, bearer access tokens, and refresh tokens.');
@@ -1008,7 +1117,7 @@ async function start() {
 }
 
 start().catch(error => {
-  console.error('Failed to start Link Vault:', error);
+  console.error('Failed to start LinksVault:', error);
   process.exit(1);
 });
 

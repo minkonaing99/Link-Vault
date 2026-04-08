@@ -10,16 +10,16 @@ from http.cookiejar import CookieJar
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Import a Link Vault JSON export through the web API."
+        description="Import a LinksVault JSON export through the web API."
     )
     parser.add_argument("json_file", help="Path to a JSON export file")
     parser.add_argument(
         "--base-url",
         default="http://127.0.0.1:3090",
-        help="Base URL of the Link Vault site, for example https://links.merxy.club",
+        help="Base URL of the LinksVault site, for example https://links.merxy.club",
     )
-    parser.add_argument("--username", required=True, help="Link Vault username")
-    parser.add_argument("--password", required=True, help="Link Vault password")
+    parser.add_argument("--username", required=True, help="LinksVault username")
+    parser.add_argument("--password", required=True, help="LinksVault password")
     return parser.parse_args()
 
 

@@ -35,3 +35,6 @@ coverage/
 # Local helper scripts
 start-link-vault.sh
 stop-link-vault.sh
+
+# Claude Code
+CLAUDE.md
