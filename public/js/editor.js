@@ -132,7 +132,12 @@ async function fetchAndApplyTitle(rawUrl) {
     const data = await fetchTitleMetadata(rawUrl);
     els.url.value = data.url || rawUrl;
     els.title.value = data.title || '';
-    setMessage(els.message, 'Title fetched.', 'success');
+    if (data.needsManualEntry) {
+      setMessage(els.message, 'Could not fetch title (site may have bot protection) — please enter it manually.', 'error');
+      els.title.focus();
+    } else {
+      setMessage(els.message, 'Title fetched.', 'success');
+    }
   } catch (error) {
     setMessage(els.message, error.message, 'error');
   }
