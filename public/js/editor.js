@@ -84,6 +84,30 @@ els.form.addEventListener('submit', async event => {
       body: JSON.stringify(payload()),
     });
     const data = await res.json();
+    if (res.status === 409) {
+      setMessage(els.message, data.error, 'error');
+      const action = document.createElement('a');
+      if (data.archived) {
+        action.textContent = ' Restore it?';
+        action.href = '#';
+        action.addEventListener('click', async e => {
+          e.preventDefault();
+          setMessage(els.message, 'Restoring...');
+          try {
+            const r = await apiFetch(`/api/links/restore/${encodeURIComponent(data.id)}`, { method: 'POST' });
+            if (!r.ok) throw new Error((await r.json()).error || 'Restore failed');
+            setMessage(els.message, 'Link restored to library.', 'success');
+          } catch (err) {
+            setMessage(els.message, err.message, 'error');
+          }
+        });
+      } else {
+        action.textContent = ' Edit it?';
+        action.href = `/editor.html?id=${encodeURIComponent(data.id)}`;
+      }
+      els.message.appendChild(action);
+      return;
+    }
     if (!res.ok) throw new Error(data.error || 'Failed to save link');
     setMessage(els.message, editing ? 'Link updated.' : 'Link saved.', 'success');
     if (!editing) {
