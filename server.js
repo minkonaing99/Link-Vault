@@ -5,6 +5,13 @@ const { server } = require('./lib/router');
 async function start() {
   await connectDb();
   await ensureAdminUser();
+
+  // Close connections that do not complete a request within 30 seconds.
+  // This guards against slow-loris and stalled clients holding sockets open.
+  server.setTimeout(30_000, (socket) => {
+    socket.destroy();
+  });
+
   server.listen(PORT, () => {
     console.log(`Link Nest running at http://localhost:${PORT}`);
     console.log(`Using MongoDB database: ${DB_NAME}.${COLLECTION_NAME}`);
