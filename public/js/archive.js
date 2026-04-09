@@ -32,7 +32,7 @@ function buildRow(item) {
 
   node.querySelector('.restore-button').addEventListener('click', async () => {
     try {
-      const res = await window.LinkVault.apiFetch(`/api/links/restore/${encodeURIComponent(item.id)}`, { method: 'POST' });
+      const res = await window.LinkNest.apiFetch(`/api/links/restore/${encodeURIComponent(item.id)}`, { method: 'POST' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Restore failed'); }
       await fetchPage(1, false);
     } catch (err) { alert(err.message); }
@@ -41,7 +41,7 @@ function buildRow(item) {
   node.querySelector('.hard-delete-button').addEventListener('click', async () => {
     if (!confirm(`Permanently delete this link? This cannot be undone.\n\n${item.title}`)) return;
     try {
-      const res = await window.LinkVault.apiFetch(`/api/links/${encodeURIComponent(item.id)}?hardDelete=true`, { method: 'DELETE' });
+      const res = await window.LinkNest.apiFetch(`/api/links/${encodeURIComponent(item.id)}?hardDelete=true`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Delete failed'); }
       await fetchPage(1, false);
     } catch (err) { alert(err.message); }
@@ -81,7 +81,7 @@ async function fetchPage(page, append = false) {
 
   try {
     const params = new URLSearchParams({ status: 'deleted', limit: LIMIT, page, sort: 'updatedAt', order: 'desc' });
-    const res = await window.LinkVault.apiFetch(`/api/links?${params}`);
+    const res = await window.LinkNest.apiFetch(`/api/links?${params}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to load');
     state.links = append ? [...state.links, ...data.links] : data.links;
@@ -100,8 +100,40 @@ if (loadMoreBtn) {
   loadMoreBtn.addEventListener('click', () => fetchPage(state.page + 1, true));
 }
 
-if (window.LinkVault.initPullToRefresh) {
-  window.LinkVault.initPullToRefresh(() => fetchPage(1, false));
+if (window.LinkNest.initPullToRefresh) {
+  window.LinkNest.initPullToRefresh(() => fetchPage(1, false));
+}
+
+const deleteAllBtn = document.getElementById('delete-all-btn');
+if (deleteAllBtn) {
+  deleteAllBtn.addEventListener('click', async () => {
+    if (!state.total) return;
+    if (!confirm(`Permanently delete all ${state.total} archived links? This cannot be undone.`)) return;
+    try {
+      deleteAllBtn.disabled = true;
+      deleteAllBtn.textContent = 'Deleting…';
+      // Fetch all ids then hard-delete each
+      let page = 1;
+      const ids = [];
+      while (true) {
+        const params = new URLSearchParams({ status: 'deleted', limit: 100, page });
+        const res = await window.LinkNest.apiFetch(`/api/links?${params}`);
+        const data = await res.json();
+        ids.push(...data.links.map(l => l.id));
+        if (page >= data.pages) break;
+        page++;
+      }
+      await Promise.all(ids.map(id =>
+        window.LinkNest.apiFetch(`/api/links/${encodeURIComponent(id)}?hardDelete=true`, { method: 'DELETE' })
+      ));
+      await fetchPage(1, false);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      deleteAllBtn.disabled = false;
+      deleteAllBtn.textContent = 'Delete all';
+    }
+  });
 }
 
 fetchPage(1, false).catch(console.error);

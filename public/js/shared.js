@@ -1,4 +1,4 @@
-async function linkVaultApiFetch(url, options = {}) {
+async function linkNestApiFetch(url, options = {}) {
   const res = await fetch(url, {
     credentials: 'same-origin',
     ...options,
@@ -12,11 +12,11 @@ async function linkVaultApiFetch(url, options = {}) {
   return res;
 }
 
-window.LinkVault = {
-  apiFetch: linkVaultApiFetch,
+window.LinkNest = {
+  apiFetch: linkNestApiFetch,
 
   async getLinks() {
-    const res = await linkVaultApiFetch('/api/links');
+    const res = await linkNestApiFetch('/api/links');
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to load links');
     return data.links || [];
@@ -60,7 +60,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const logoutButton = document.getElementById('logout-button');
   if (!logoutButton) return;
   logoutButton.addEventListener('click', () => {
-    window.LinkVault.logout().catch(() => {
+    window.LinkNest.logout().catch(() => {
       window.location.href = '/login.html';
     });
   });
@@ -90,7 +90,7 @@ document.addEventListener('keydown', e => {
 });
 
 // Pull-to-refresh utility for mobile
-window.LinkVault.initPullToRefresh = function (onRefresh) {
+window.LinkNest.initPullToRefresh = function (onRefresh) {
   const indicator = document.createElement('div');
   indicator.className = 'ptr-indicator';
   document.body.appendChild(indicator);

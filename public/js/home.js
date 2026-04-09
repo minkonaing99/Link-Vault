@@ -1,4 +1,4 @@
-const { getLinks, safeHost, apiFetch, setMessage } = window.LinkVault;
+const { getLinks, safeHost, apiFetch, setMessage } = window.LinkNest;
 
 const recentLinks = document.getElementById('recent-links');
 const template = document.getElementById('link-template');
@@ -152,8 +152,8 @@ quickAddPaste.addEventListener('click', async () => {
   }
 });
 
-if (window.LinkVault.initPullToRefresh) {
-  window.LinkVault.initPullToRefresh(() => loadHome());
+if (window.LinkNest.initPullToRefresh) {
+  window.LinkNest.initPullToRefresh(() => loadHome());
 }
 
 loadHome().catch(console.error);

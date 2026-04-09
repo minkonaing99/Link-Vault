@@ -1,14 +1,14 @@
-# LinksVault
+# Link Nest
 
 Last updated: 2026-03-21
 
-LinksVault is a private website for saving, organizing, and revisiting useful links in one clean library.
+Link Nest is a private website for saving, organizing, and revisiting useful links in one clean library.
 
 It is designed for people who want a calmer alternative to messy browser bookmarks, scattered notes, or saving links across multiple apps. The project includes a built-in web interface and a JSON API, so the same database can later be used by a mobile app such as iOS.
 
 ## What The Website Does
 
-LinksVault helps you collect links and keep them easy to find later.
+Link Nest helps you collect links and keep them easy to find later.
 
 You can:
 
@@ -65,7 +65,7 @@ The backend is structured so the website and an iOS app can use the same MongoDB
 
 ## Tech Stack
 
-LinksVault is built with:
+Link Nest is built with:
 
 - Node.js
 - a plain HTTP server
@@ -119,7 +119,7 @@ Full API details are documented in [API.md](./API.md).
 
 ## Product Direction
 
-LinksVault is intended to be more than a simple bookmark page. The long-term direction is a personal link library with:
+Link Nest is intended to be more than a simple bookmark page. The long-term direction is a personal link library with:
 
 - a private web interface
 - mobile app support

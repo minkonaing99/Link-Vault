@@ -1,6 +1,6 @@
 const LIMIT = 50;
 
-const state = { links: [], page: 1, totalPages: 1, total: 0, loading: false };
+const state = { links: [], page: 1, totalPages: 1, total: 0, loading: false, selectMode: false, selected: new Set() };
 
 const SORT_MAP = {
   recent:       { sort: 'updatedAt', order: 'desc' },
@@ -16,8 +16,13 @@ const visibleCount   = document.getElementById('visible-count');
 const searchInput    = document.getElementById('search');
 const statusFilter   = document.getElementById('status-filter');
 const sortModeSelect = document.getElementById('sort-mode');
-const loadMoreWrap   = document.getElementById('load-more-wrap');
-const loadMoreBtn    = document.getElementById('load-more');
+const pagination       = document.getElementById('pagination');
+const bulkBar          = document.getElementById('bulk-bar');
+const bulkCount        = document.getElementById('bulk-count');
+const bulkSelectAllBtn = document.getElementById('bulk-select-all');
+const bulkDeleteBtn    = document.getElementById('bulk-delete-btn');
+const bulkCancelBtn    = document.getElementById('bulk-cancel-btn');
+const selectToggleBtn  = document.getElementById('select-toggle-btn');
 
 function safeHost(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
@@ -46,7 +51,7 @@ function groupLabel(dateString) {
 }
 
 async function togglePinned(item) {
-  const res = await window.LinkVault.apiFetch(`/api/links/${encodeURIComponent(item.id)}`, {
+  const res = await window.LinkNest.apiFetch(`/api/links/${encodeURIComponent(item.id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...item, pinned: !item.pinned }),
@@ -55,7 +60,7 @@ async function togglePinned(item) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || 'Failed to update pin state');
   }
-  await fetchPage(1, false);
+  await fetchPage(1);
 }
 
 function closeAllMenus() {
@@ -65,20 +70,63 @@ function closeAllMenus() {
   document.querySelectorAll('.library-row').forEach(r => r.classList.remove('is-menu-open'));
 }
 
+function updateBulkBar() {
+  const count = state.selected.size;
+  bulkCount.textContent = `${count} selected`;
+  bulkDeleteBtn.disabled = count === 0;
+  const allIds = state.links.map(l => l.id);
+  bulkSelectAllBtn.textContent = allIds.every(id => state.selected.has(id)) ? 'Deselect all' : 'Select all';
+}
+
+function enterSelectMode() {
+  state.selectMode = true;
+  state.selected.clear();
+  document.body.classList.add('is-selecting');
+  bulkBar.classList.remove('hidden');
+  selectToggleBtn.textContent = 'Done';
+  updateBulkBar();
+}
+
+function exitSelectMode() {
+  state.selectMode = false;
+  state.selected.clear();
+  document.body.classList.remove('is-selecting');
+  bulkBar.classList.add('hidden');
+  selectToggleBtn.textContent = 'Select';
+  document.querySelectorAll('.row-checkbox__input').forEach(cb => { cb.checked = false; });
+}
+
+async function bulkDelete() {
+  if (!state.selected.size) return;
+  const ids = [...state.selected];
+  await Promise.all(ids.map(id => window.LinkNest.apiFetch(`/api/links/${encodeURIComponent(id)}`, { method: 'DELETE' })));
+  exitSelectMode();
+  await fetchPage(state.page);
+}
+
 function buildRow(item) {
   const node = template.content.cloneNode(true);
+
+  const checkbox = node.querySelector('.row-checkbox__input');
+  checkbox.checked = state.selected.has(item.id);
+  checkbox.addEventListener('change', () => {
+    if (checkbox.checked) state.selected.add(item.id);
+    else state.selected.delete(item.id);
+    updateBulkBar();
+  });
+
+  // Clicking anywhere on the row toggles selection in select mode
+  const rowArticle = node.querySelector('.library-row');
+  rowArticle.addEventListener('click', e => {
+    if (!state.selectMode) return;
+    if (e.target.closest('a')) return; // allow link clicks
+    checkbox.checked = !checkbox.checked;
+    checkbox.dispatchEvent(new Event('change'));
+  });
 
   const host = item.host || safeHost(item.url);
   node.querySelector('.link-host').textContent = host;
   node.querySelector('.link-date').textContent = item.date || 'Unknown date';
-
-  const favicon = node.querySelector('.link-favicon');
-  if (host) {
-    favicon.src = `https://icons.duckduckgo.com/ip3/${host}.ico`;
-    favicon.onerror = () => { favicon.style.display = 'none'; };
-  } else {
-    favicon.style.display = 'none';
-  }
 
   applyStatusStyles(node.querySelector('.status-dot'), node.querySelector('.status-text'), item.status);
 
@@ -105,7 +153,7 @@ function buildRow(item) {
       el.addEventListener('click', event => {
         event.preventDefault();
         searchInput.value = tag;
-        fetchPage(1, false);
+        fetchPage(1);
         searchInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
       tagRow.appendChild(el);
@@ -117,9 +165,9 @@ function buildRow(item) {
   node.querySelector('.delete-button').addEventListener('click', async event => {
     event.stopPropagation();
     if (!confirm(`Delete this link?\n\n${item.title}`)) return;
-    await window.LinkVault.apiFetch(`/api/links/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
+    await window.LinkNest.apiFetch(`/api/links/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
     closeAllMenus();
-    await fetchPage(1, false);
+    await fetchPage(1);
   });
 
   const menu    = node.querySelector('.row-menu');
@@ -169,13 +217,46 @@ function render(items) {
     }
   }
 
-  const hasMore = state.page < state.totalPages;
-  if (loadMoreWrap) loadMoreWrap.classList.toggle('hidden', !hasMore);
-  if (loadMoreBtn && hasMore) {
-    const remaining = state.total - state.links.length;
-    loadMoreBtn.textContent = `Load ${Math.min(remaining, LIMIT)} more`;
-    loadMoreBtn.disabled = false;
+  renderPagination();
+}
+
+function renderPagination() {
+  if (!pagination) return;
+  const { page, totalPages } = state;
+  if (totalPages <= 1) { pagination.classList.add('hidden'); return; }
+  pagination.classList.remove('hidden');
+  pagination.innerHTML = '';
+
+  const btn = (label, targetPage, active = false, disabled = false) => {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'pagination__btn' + (active ? ' pagination__btn--active' : '');
+    el.textContent = label;
+    el.disabled = disabled;
+    if (!disabled && !active) el.addEventListener('click', () => { fetchPage(targetPage, false); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    return el;
+  };
+
+  pagination.appendChild(btn('‹', page - 1, false, page === 1));
+
+  const delta = 2;
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= page - delta && i <= page + delta)) pages.push(i);
   }
+  let prev = null;
+  for (const p of pages) {
+    if (prev !== null && p - prev > 1) {
+      const dots = document.createElement('span');
+      dots.className = 'pagination__dots';
+      dots.textContent = '…';
+      pagination.appendChild(dots);
+    }
+    pagination.appendChild(btn(String(p), p, p === page));
+    prev = p;
+  }
+
+  pagination.appendChild(btn('›', page + 1, false, page === totalPages));
 }
 
 function buildApiParams(page) {
@@ -190,16 +271,15 @@ function buildApiParams(page) {
   return params;
 }
 
-async function fetchPage(page, append = false) {
+async function fetchPage(page) {
   if (state.loading) return;
   state.loading = true;
-  if (loadMoreBtn) { loadMoreBtn.textContent = 'Loading…'; loadMoreBtn.disabled = true; }
 
   try {
-    const res = await window.LinkVault.apiFetch(`/api/links?${buildApiParams(page)}`);
+    const res = await window.LinkNest.apiFetch(`/api/links?${buildApiParams(page)}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to load links');
-    state.links = append ? [...state.links, ...data.links] : data.links;
+    state.links = data.links;
     state.page = data.page;
     state.totalPages = data.pages;
     state.total = data.total;
@@ -217,13 +297,9 @@ function debounce(fn, delay) {
 }
 
 document.addEventListener('click', closeAllMenus);
-searchInput.addEventListener('input', debounce(() => fetchPage(1, false), 300));
-statusFilter.addEventListener('change', () => fetchPage(1, false));
-sortModeSelect.addEventListener('change', () => fetchPage(1, false));
-
-if (loadMoreBtn) {
-  loadMoreBtn.addEventListener('click', () => fetchPage(state.page + 1, true));
-}
+searchInput.addEventListener('input', debounce(() => fetchPage(1), 300));
+statusFilter.addEventListener('change', () => fetchPage(1));
+sortModeSelect.addEventListener('change', () => fetchPage(1));
 
 const checkLinksBtn = document.getElementById('check-links-btn');
 const healthPanel   = document.getElementById('health-panel');
@@ -236,7 +312,7 @@ async function runHealthCheck() {
   healthPanel.textContent = 'Checking links, this may take a moment…';
 
   try {
-    const res = await window.LinkVault.apiFetch('/api/links/check-health?limit=100');
+    const res = await window.LinkNest.apiFetch('/api/links/check-health?limit=100');
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Health check failed');
 
@@ -271,12 +347,33 @@ async function runHealthCheck() {
   }
 }
 
-if (checkLinksBtn) {
-  checkLinksBtn.addEventListener('click', runHealthCheck);
+if (checkLinksBtn) checkLinksBtn.addEventListener('click', runHealthCheck);
+
+selectToggleBtn.addEventListener('click', () => {
+  if (state.selectMode) exitSelectMode();
+  else enterSelectMode();
+});
+
+bulkCancelBtn.addEventListener('click', exitSelectMode);
+
+bulkDeleteBtn.addEventListener('click', bulkDelete);
+
+bulkSelectAllBtn.addEventListener('click', () => {
+  const allIds = state.links.map(l => l.id);
+  const allSelected = allIds.every(id => state.selected.has(id));
+  if (allSelected) {
+    allIds.forEach(id => state.selected.delete(id));
+  } else {
+    allIds.forEach(id => state.selected.add(id));
+  }
+  document.querySelectorAll('.row-checkbox__input').forEach((cb, i) => {
+    cb.checked = state.selected.has(state.links[i]?.id);
+  });
+  updateBulkBar();
+});
+
+if (window.LinkNest.initPullToRefresh) {
+  window.LinkNest.initPullToRefresh(() => fetchPage(1));
 }
 
-if (window.LinkVault.initPullToRefresh) {
-  window.LinkVault.initPullToRefresh(() => fetchPage(1, false));
-}
-
-fetchPage(1, false).catch(console.error);
+fetchPage(1).catch(console.error);

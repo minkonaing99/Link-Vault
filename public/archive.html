@@ -7,8 +7,8 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="LinksVault" />
-    <title>Archive · LinksVault</title>
+    <meta name="apple-mobile-web-app-title" content="Link Nest" />
+    <title>Archive · Link Nest</title>
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
@@ -19,8 +19,8 @@
       <header class="page-header">
         <div class="page-bar">
           <div class="page-bar__identity">
-            <img class="brand-mark" src="/img/logo-mark.png" alt="LinksVault logo" />
-            <span class="page-kicker">LinksVault</span>
+            <img class="brand-mark" src="/img/logo-mark.png" alt="Link Nest logo" />
+            <span class="page-kicker">Link Nest</span>
           </div>
           <button type="button" class="button button--ghost button--small button--logout" id="logout-button">Logout</button>
         </div>
@@ -38,7 +38,10 @@
               <h2 class="section-title">Archive</h2>
               <p class="section-copy"><span id="total-count">0</span> deleted links</p>
             </div>
-            <a class="button button--ghost" href="/browse.html">← Browse</a>
+            <div class="browse-actions">
+              <a class="button button--ghost" href="/browse.html">← Browse</a>
+              <button type="button" id="delete-all-btn" class="button button--ghost button--danger">Delete all</button>
+            </div>
           </div>
           <div id="link-list" class="list-stack list-stack--tight list-stack--rows"></div>
           <div id="load-more-wrap" class="load-more-wrap hidden">

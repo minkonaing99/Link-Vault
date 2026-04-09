@@ -1,6 +1,6 @@
 {
-  "name": "LinksVault",
-  "short_name": "LinksVault",
+  "name": "Link Nest",
+  "short_name": "Link Nest",
   "description": "Private link library",
   "start_url": "/",
   "display": "standalone",

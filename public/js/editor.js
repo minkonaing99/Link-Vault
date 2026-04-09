@@ -1,4 +1,4 @@
-const { getLinks, setMessage, parseTags, queryParam, apiFetch } = window.LinkVault;
+const { getLinks, setMessage, parseTags, queryParam, apiFetch } = window.LinkNest;
 
 const els = {
   form: document.getElementById('link-form'),

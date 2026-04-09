@@ -12,19 +12,19 @@ const PORT = Number(process.env.PORT || 3080);
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const MONGODB_URI = process.env.MONGODB_URI;
-const DB_NAME = process.env.MONGODB_DB_NAME || 'linkvault';
+const DB_NAME = process.env.MONGODB_DB_NAME || 'linknest';
 const COLLECTION_NAME = 'links';
 const USERS_COLLECTION = 'users';
 const SESSIONS_COLLECTION = 'sessions';
 const REFRESH_TOKENS_COLLECTION = 'refresh_tokens';
-const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'linkvault_session';
+const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'linknest_session';
 const AUTH_SESSION_TTL_DAYS = Number(process.env.AUTH_SESSION_TTL_DAYS || 30);
 const JWT_TTL_DAYS = Number(process.env.JWT_TTL_DAYS || 30);
 const ACCESS_TOKEN_TTL_MINUTES = Number(process.env.ACCESS_TOKEN_TTL_MINUTES || 15);
 const REFRESH_TOKEN_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS || JWT_TTL_DAYS || 30);
 const JWT_SECRET = String(process.env.JWT_SECRET || '').trim();
-const ADMIN_USERNAME = String(process.env.LINKVAULT_ADMIN_USERNAME || '').trim();
-const ADMIN_PASSWORD = String(process.env.LINKVAULT_ADMIN_PASSWORD || '').trim();
+const ADMIN_USERNAME = String(process.env.LINKNEST_ADMIN_USERNAME || '').trim();
+const ADMIN_PASSWORD = String(process.env.LINKNEST_ADMIN_PASSWORD || '').trim();
 const PROTECTED_PAGES = new Set(['/browse.html', '/editor.html', '/archive.html', '/']);
 const PUBLIC_PAGES = new Set(['/login.html', '/offline.html']);
 const ENTRY_TITLE_MAX_LENGTH = 300;
@@ -34,11 +34,11 @@ const LIST_LIMIT_DEFAULT = 50;
 const LIST_LIMIT_MAX = 200;
 
 if (!MONGODB_URI) {
-  throw new Error('Missing MONGODB_URI. Put it in .env or the environment before starting LinksVault.');
+  throw new Error('Missing MONGODB_URI. Put it in .env or the environment before starting Link Nest.');
 }
 
 if (!JWT_SECRET) {
-  throw new Error('Missing JWT_SECRET. Put it in .env before starting LinksVault.');
+  throw new Error('Missing JWT_SECRET. Put it in .env before starting Link Nest.');
 }
 
 let mongoClient;
@@ -441,7 +441,7 @@ async function fetchTitleForUrl(rawUrl) {
   if (/(youtube\.com|youtu\.be)$/i.test(host)) {
     try {
       const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(cleanedUrl)}&format=json`;
-      const oembedRes = await fetch(oembedUrl, { headers: { 'User-Agent': 'LinkVault/0.1 (+local)' } });
+      const oembedRes = await fetch(oembedUrl, { headers: { 'User-Agent': 'LinkNest/0.1 (+local)' } });
       if (oembedRes.ok) {
         const oembed = await oembedRes.json();
         if (oembed?.title) return { title: String(oembed.title).trim(), url: cleanedUrl, host };
@@ -453,7 +453,7 @@ async function fetchTitleForUrl(rawUrl) {
   const response = await fetch(cleanedUrl, {
     redirect: 'follow',
     headers: {
-      'User-Agent': 'LinkVault/0.1 (+local)',
+      'User-Agent': 'LinkNest/0.1 (+local)',
       Accept: 'text/html,application/xhtml+xml',
     },
   });
@@ -506,7 +506,7 @@ async function connectDb() {
 async function ensureAdminUser() {
   await connectDb();
   if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
-    console.warn('No usable initial admin credentials found. Set LINKVAULT_ADMIN_USERNAME and LINKVAULT_ADMIN_PASSWORD in .env.');
+    console.warn('No usable initial admin credentials found. Set LINKNEST_ADMIN_USERNAME and LINKNEST_ADMIN_PASSWORD in .env.');
     return;
   }
   const existing = await usersCollection.findOne({ username: ADMIN_USERNAME });
@@ -515,7 +515,7 @@ async function ensureAdminUser() {
 
   if (!existing) {
     await usersCollection.insertOne({ id: makeId(), username: ADMIN_USERNAME, passwordHash, createdAt: timestamp, updatedAt: timestamp });
-    console.log(`Created LinksVault admin user: ${ADMIN_USERNAME}`);
+    console.log(`Created Link Nest admin user: ${ADMIN_USERNAME}`);
     return;
   }
 
@@ -523,7 +523,7 @@ async function ensureAdminUser() {
     $set: { passwordHash, updatedAt: timestamp },
     $setOnInsert: { id: makeId(), createdAt: timestamp },
   }, { upsert: true });
-  console.log(`Synced LinksVault admin credentials for: ${ADMIN_USERNAME}`);
+  console.log(`Synced Link Nest admin credentials for: ${ADMIN_USERNAME}`);
 }
 
 async function authenticateUser(username, password) {
@@ -974,7 +974,7 @@ const server = http.createServer(async (req, res) => {
               method: 'HEAD',
               signal: controller.signal,
               redirect: 'follow',
-              headers: { 'User-Agent': 'LinksVault/0.1 (+health-check)' },
+              headers: { 'User-Agent': 'Link Nest/0.1 (+health-check)' },
             });
             clearTimeout(timer);
             return { id: doc.id, url: doc.url, title: doc.title, ok: r.ok, status: r.status };
@@ -1109,7 +1109,7 @@ async function start() {
   await connectDb();
   await ensureAdminUser();
   server.listen(PORT, () => {
-    console.log(`LinksVault running at http://localhost:${PORT}`);
+    console.log(`Link Nest running at http://localhost:${PORT}`);
     console.log(`Using MongoDB database: ${DB_NAME}.${COLLECTION_NAME}`);
     console.log('Legacy JSON fallback is disabled.');
     console.log('Auth enabled with cookie sessions, bearer access tokens, and refresh tokens.');
@@ -1117,7 +1117,7 @@ async function start() {
 }
 
 start().catch(error => {
-  console.error('Failed to start LinksVault:', error);
+  console.error('Failed to start Link Nest:', error);
   process.exit(1);
 });
 
