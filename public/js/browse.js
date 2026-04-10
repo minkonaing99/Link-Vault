@@ -93,7 +93,7 @@ function exitSelectMode() {
   document.body.classList.remove('is-selecting');
   bulkBar.classList.add('hidden');
   selectToggleBtn.textContent = 'Select';
-  document.querySelectorAll('.row-checkbox__input').forEach(cb => { cb.checked = false; });
+  document.querySelectorAll('.library-row.is-selected').forEach(r => r.classList.remove('is-selected'));
 }
 
 async function bulkDelete() {
@@ -107,21 +107,17 @@ async function bulkDelete() {
 function buildRow(item) {
   const node = template.content.cloneNode(true);
 
-  const checkbox = node.querySelector('.row-checkbox__input');
-  checkbox.checked = state.selected.has(item.id);
-  checkbox.addEventListener('change', () => {
-    if (checkbox.checked) state.selected.add(item.id);
-    else state.selected.delete(item.id);
-    updateBulkBar();
-  });
-
-  // Clicking anywhere on the row toggles selection in select mode
   const rowArticle = node.querySelector('.library-row');
+  if (state.selected.has(item.id)) rowArticle.classList.add('is-selected');
+
+  // In select mode: whole row is a toggle; block link navigation
   rowArticle.addEventListener('click', e => {
     if (!state.selectMode) return;
-    if (e.target.closest('a')) return; // allow link clicks
-    checkbox.checked = !checkbox.checked;
-    checkbox.dispatchEvent(new Event('change'));
+    e.preventDefault();
+    const nowSelected = !state.selected.has(item.id);
+    if (nowSelected) { state.selected.add(item.id); rowArticle.classList.add('is-selected'); }
+    else             { state.selected.delete(item.id); rowArticle.classList.remove('is-selected'); }
+    updateBulkBar();
   });
 
   const host = item.host || safeHost(item.url);
@@ -361,14 +357,14 @@ bulkDeleteBtn.addEventListener('click', bulkDelete);
 bulkSelectAllBtn.addEventListener('click', () => {
   const allIds = state.links.map(l => l.id);
   const allSelected = allIds.every(id => state.selected.has(id));
+  const rows = document.querySelectorAll('.library-row');
   if (allSelected) {
     allIds.forEach(id => state.selected.delete(id));
+    rows.forEach(r => r.classList.remove('is-selected'));
   } else {
     allIds.forEach(id => state.selected.add(id));
+    rows.forEach(r => r.classList.add('is-selected'));
   }
-  document.querySelectorAll('.row-checkbox__input').forEach((cb, i) => {
-    cb.checked = state.selected.has(state.links[i]?.id);
-  });
   updateBulkBar();
 });
 

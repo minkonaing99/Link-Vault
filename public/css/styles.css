@@ -963,56 +963,7 @@ textarea.field {
   padding: 10px 10px 14px;
 }
 
-/* Row checkbox (hidden until select mode) */
-.row-checkbox {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 0;
-  overflow: hidden;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: width 0.2s ease;
-}
-.row-checkbox__input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.row-checkbox__box {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  border: 2px solid var(--separator);
-  background: var(--surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.15s, border-color 0.15s;
-}
-.row-checkbox__input:checked + .row-checkbox__box {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.row-checkbox__input:checked + .row-checkbox__box::after {
-  content: '';
-  display: block;
-  width: 5px;
-  height: 9px;
-  border: 2px solid #fff;
-  border-top: none;
-  border-left: none;
-  transform: rotate(45deg) translate(-1px, -1px);
-}
-
 /* Select mode */
-body.is-selecting .row-checkbox {
-  display: flex;
-  width: 20px;
-  margin-right: 14px;
-}
 body.is-selecting .library-row__status,
 body.is-selecting .library-row__tail {
   display: none;
@@ -1020,9 +971,16 @@ body.is-selecting .library-row__tail {
 body.is-selecting .library-row {
   cursor: pointer;
   align-items: center;
+  border-left: 3px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+  user-select: none;
 }
-body.is-selecting .library-row:has(.row-checkbox__input:checked) {
-  background: rgba(0, 122, 255, 0.06);
+body.is-selecting .library-row:hover {
+  background: rgba(0, 122, 255, 0.04);
+}
+body.is-selecting .library-row.is-selected {
+  background: rgba(0, 122, 255, 0.1);
+  border-left-color: #007aff;
 }
 body.is-selecting .library-row__tags {
   pointer-events: none;
