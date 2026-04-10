@@ -136,7 +136,7 @@ function buildRow(item) {
 
   const titleEl = node.querySelector('.library-row__title');
   const rawTitle = item.title || item.url;
-  titleEl.textContent = rawTitle.length > 55 ? rawTitle.slice(0, 55) + '…' : rawTitle;
+  titleEl.textContent = (() => { const limit = window.matchMedia('(max-width: 768px)').matches ? 55 : 70; return rawTitle.length > limit ? rawTitle.slice(0, limit) + '…' : rawTitle; })();
   titleEl.href = item.url;
   titleEl.title = rawTitle;
 
