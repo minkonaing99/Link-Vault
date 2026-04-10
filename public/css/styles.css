@@ -1022,6 +1022,11 @@ body.is-selecting .library-row__tags {
   display: flex;
   gap: 6px;
 }
+#bulk-delete-btn {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
 
 /* Pagination */
 .pagination {
