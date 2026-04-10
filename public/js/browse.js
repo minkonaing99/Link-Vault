@@ -135,9 +135,10 @@ function buildRow(item) {
   });
 
   const titleEl = node.querySelector('.library-row__title');
-  titleEl.textContent = item.title || item.url;
+  const rawTitle = item.title || item.url;
+  titleEl.textContent = rawTitle.length > 70 ? rawTitle.slice(0, 70) + '…' : rawTitle;
   titleEl.href = item.url;
-  titleEl.title = item.title || item.url;
+  titleEl.title = rawTitle;
 
   const tagRow = node.querySelector('.library-row__tags');
   if (item.tags?.length) {
