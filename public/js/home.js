@@ -43,9 +43,10 @@ function renderRecent(items) {
     const statusText = node.querySelector('.status-text');
     applyStatusStyles(dot, statusText, item.status);
     const title = node.querySelector('.recent-row__title');
-    title.textContent = item.title || item.url;
+    const rawTitle = item.title || item.url;
+    title.textContent = rawTitle.length > 55 ? rawTitle.slice(0, 55) + '…' : rawTitle;
     title.href = item.url;
-    title.title = item.title || item.url;
+    title.title = rawTitle;
     fragment.appendChild(node);
   }
   recentLinks.appendChild(fragment);
