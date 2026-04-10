@@ -853,6 +853,13 @@ textarea.field {
   background: rgba(60, 60, 67, 0.12);
 }
 
+@media (max-width: 768px) {
+  #check-links-btn,
+  a[href="/api/links/export"] {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   .editor-secondary {
     padding: 14px;
@@ -1146,10 +1153,6 @@ body.is-selecting .library-row__tags {
     text-align: center;
     justify-content: center;
     min-height: 36px;
-  }
-  #check-links-btn,
-  a[href="/api/links/export"] {
-    display: none;
   }
 }
 
