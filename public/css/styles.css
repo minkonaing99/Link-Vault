@@ -1147,6 +1147,10 @@ body.is-selecting .library-row__tags {
     justify-content: center;
     min-height: 36px;
   }
+  #check-links-btn,
+  a[href="/api/links/export"] {
+    display: none;
+  }
 }
 
 /* Archive row tail */
