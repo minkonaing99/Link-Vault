@@ -1,6 +1,6 @@
-# Link Nest
+# Link Nest · v1.2.0
 
-Last updated: 2026-03-21
+Last updated: 2026-04-12
 
 Link Nest is a private website for saving, organizing, and revisiting useful links in one clean library.
 
@@ -16,6 +16,10 @@ You can:
 - auto-fetch the page title from a pasted URL
 - browse saved links in a cleaner library view
 - search, filter, sort, pin, edit, restore, and soft-delete links
+- tap the status dot to instantly cycle a link's status
+- filter by popular tags using one-tap chips above the library
+- see your unread count at a glance in the nav bar
+- bulk-select links and change their status or delete them at once
 - export data as JSON
 - use the same backend for both the website and future mobile clients
 
@@ -28,6 +32,11 @@ The home page gives a compact overview of your library. It includes summary card
 ### Browse
 
 The browse page is the main library view. It is built for scanning links quickly, filtering by status or tag, and managing items without leaving the page.
+
+- **Inline status cycling** — click the status dot on any row to cycle through saved, unread, and useful without opening an editor
+- **Tag filter chips** — the most-used tags appear as tappable chips above the list for instant one-tap filtering
+- **Unread badge** — the Browse nav link shows a live count of unread links across all pages
+- **Bulk actions** — select multiple links and delete or change their status in one action
 
 ### Add Link
 
@@ -112,6 +121,8 @@ Main API groups:
 - token and refresh-token auth
 - link listing with pagination and filters
 - create, update, soft delete, restore, and hard delete
+- bulk status update (`PATCH /api/links/bulk`)
+- tag usage counts (`GET /api/tags`)
 - title fetching
 - import and export
 
