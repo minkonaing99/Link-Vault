@@ -1218,3 +1218,78 @@ body.is-selecting .library-row__tags {
   text-decoration: none;
 }
 .health-item__title:hover { text-decoration: underline; }
+
+/* ── Status dot: clickable ──────────────────────────────────────── */
+.library-row__status {
+  cursor: pointer;
+  padding: 6px;
+  margin: -6px;
+}
+.status-dot {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.library-row__status:hover .status-dot {
+  transform: scale(1.6);
+}
+.status-dot--transitioning {
+  opacity: 0.5;
+}
+
+/* ── Tag filter chips ───────────────────────────────────────────── */
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 10px 8px;
+}
+.tag-chips.hidden { display: none; }
+.tag-chip {
+  background: rgba(118, 118, 128, 0.1);
+  color: var(--label);
+  border: 1px solid transparent;
+  transition: background 120ms ease, color 120ms ease;
+}
+.tag-chip:hover {
+  background: rgba(118, 118, 128, 0.18);
+}
+.tag-chip.is-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* ── Unread count badge on nav ──────────────────────────────────── */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #c89200;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 4px;
+  vertical-align: middle;
+  line-height: 1;
+}
+.nav-badge.hidden { display: none; }
+
+/* ── Bulk status select ─────────────────────────────────────────── */
+.field--small {
+  height: 30px;
+  font-size: 12px;
+  padding: 0 8px;
+  min-width: 110px;
+}
+@media (max-width: 400px) {
+  .bulk-bar__actions {
+    flex-wrap: wrap;
+  }
+  .field--small {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+}

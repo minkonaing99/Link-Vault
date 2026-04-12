@@ -26,7 +26,7 @@
         </div>
         <nav class="segmented-nav" aria-label="Primary">
           <a class="segmented-nav__item" href="/">Home</a>
-          <a class="segmented-nav__item is-active" href="/browse.html">Browse</a>
+          <a class="segmented-nav__item is-active" href="/browse.html">Browse <span class="nav-badge hidden" id="unread-badge"></span></a>
           <a class="segmented-nav__item" href="/editor.html">Add Link</a>
         </nav>
       </header>
@@ -67,6 +67,7 @@
               <a class="button button--ghost" href="/api/links/export">Export</a>
             </div>
           </div>
+          <div id="tag-chips" class="tag-chips hidden"></div>
           <div id="health-panel" class="health-panel hidden"></div>
           <div id="link-list" class="list-stack list-stack--tight list-stack--rows"></div>
           <nav id="pagination" class="pagination hidden" aria-label="Pagination"></nav>
@@ -78,6 +79,12 @@
       <span id="bulk-count" class="bulk-bar__count">0 selected</span>
       <div class="bulk-bar__actions">
         <button type="button" id="bulk-select-all" class="button button--ghost button--small">Select all</button>
+        <select id="bulk-status-select" class="field field--select field--small">
+          <option value="" disabled selected>Set status…</option>
+          <option value="saved">Saved</option>
+          <option value="unread">Unread</option>
+          <option value="useful">Useful</option>
+        </select>
         <button type="button" id="bulk-delete-btn" class="button button--small button--danger">Delete</button>
         <button type="button" id="bulk-cancel-btn" class="button button--ghost button--small">Cancel</button>
       </div>

@@ -1,4 +1,5 @@
 const LIMIT = 50;
+const STATUS_CYCLE = ['saved', 'unread', 'useful'];
 
 const state = { links: [], page: 1, totalPages: 1, total: 0, loading: false, selectMode: false, selected: new Set() };
 
@@ -9,20 +10,22 @@ const SORT_MAP = {
   'title-desc': { sort: 'title',     order: 'desc' },
 };
 
-const linkList       = document.getElementById('link-list');
-const template       = document.getElementById('link-template');
-const totalCount     = document.getElementById('total-count');
-const visibleCount   = document.getElementById('visible-count');
-const searchInput    = document.getElementById('search');
-const statusFilter   = document.getElementById('status-filter');
-const sortModeSelect = document.getElementById('sort-mode');
-const pagination       = document.getElementById('pagination');
-const bulkBar          = document.getElementById('bulk-bar');
-const bulkCount        = document.getElementById('bulk-count');
-const bulkSelectAllBtn = document.getElementById('bulk-select-all');
-const bulkDeleteBtn    = document.getElementById('bulk-delete-btn');
-const bulkCancelBtn    = document.getElementById('bulk-cancel-btn');
-const selectToggleBtn  = document.getElementById('select-toggle-btn');
+const linkList          = document.getElementById('link-list');
+const template          = document.getElementById('link-template');
+const totalCount        = document.getElementById('total-count');
+const visibleCount      = document.getElementById('visible-count');
+const searchInput       = document.getElementById('search');
+const statusFilter      = document.getElementById('status-filter');
+const sortModeSelect    = document.getElementById('sort-mode');
+const pagination        = document.getElementById('pagination');
+const bulkBar           = document.getElementById('bulk-bar');
+const bulkCount         = document.getElementById('bulk-count');
+const bulkSelectAllBtn  = document.getElementById('bulk-select-all');
+const bulkDeleteBtn     = document.getElementById('bulk-delete-btn');
+const bulkCancelBtn     = document.getElementById('bulk-cancel-btn');
+const selectToggleBtn   = document.getElementById('select-toggle-btn');
+const bulkStatusSelect  = document.getElementById('bulk-status-select');
+const tagChipsContainer = document.getElementById('tag-chips');
 
 function safeHost(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
@@ -102,6 +105,57 @@ async function bulkDelete() {
   await Promise.all(ids.map(id => window.LinkNest.apiFetch(`/api/links/${encodeURIComponent(id)}`, { method: 'DELETE' })));
   exitSelectMode();
   await fetchPage(state.page);
+  window.LinkNest.updateUnreadBadge();
+}
+
+async function bulkChangeStatus(status) {
+  if (!state.selected.size || !status) return;
+  const ids = [...state.selected];
+  try {
+    const res = await window.LinkNest.apiFetch('/api/links/bulk', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, status }),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed'); }
+  } catch (err) {
+    alert(err.message);
+  }
+  exitSelectMode();
+  await fetchPage(state.page);
+  window.LinkNest.updateUnreadBadge();
+}
+
+async function loadTagChips() {
+  if (!tagChipsContainer) return;
+  try {
+    const res = await window.LinkNest.apiFetch('/api/tags?limit=15');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.tags || !data.tags.length) return;
+    tagChipsContainer.innerHTML = '';
+    for (const { tag } of data.tags) {
+      const chip = document.createElement('span');
+      chip.className = 'badge tag tag-chip';
+      chip.textContent = tag;
+      chip.dataset.tag = tag;
+      chip.addEventListener('click', () => {
+        const isActive = chip.classList.contains('is-active');
+        tagChipsContainer.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('is-active'));
+        if (isActive) {
+          searchInput.value = '';
+        } else {
+          chip.classList.add('is-active');
+          searchInput.value = tag;
+        }
+        fetchPage(1);
+      });
+      tagChipsContainer.appendChild(chip);
+    }
+    tagChipsContainer.classList.remove('hidden');
+  } catch {
+    // non-critical — chips are a progressive enhancement
+  }
 }
 
 function buildRow(item) {
@@ -124,7 +178,34 @@ function buildRow(item) {
   node.querySelector('.link-host').textContent = host;
   node.querySelector('.link-date').textContent = item.date || 'Unknown date';
 
-  applyStatusStyles(node.querySelector('.status-dot'), node.querySelector('.status-text'), item.status);
+  const statusDot = node.querySelector('.status-dot');
+  const statusText = node.querySelector('.status-text');
+  applyStatusStyles(statusDot, statusText, item.status);
+
+  statusDot.title = 'Click to change status';
+  statusDot.addEventListener('click', async event => {
+    event.stopPropagation();
+    if (state.selectMode) return;
+    const current = item.status || 'saved';
+    const idx = STATUS_CYCLE.indexOf(current);
+    const next = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+    statusDot.classList.add('status-dot--transitioning');
+    try {
+      const res = await window.LinkNest.apiFetch(`/api/links/${encodeURIComponent(item.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...item, status: next }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed'); }
+      item.status = next;
+      applyStatusStyles(statusDot, statusText, next);
+      window.LinkNest.updateUnreadBadge();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      statusDot.classList.remove('status-dot--transitioning');
+    }
+  });
 
   const pinToggle = node.querySelector('.pin-toggle');
   pinToggle.textContent = item.pinned ? '★' : '☆';
@@ -294,9 +375,26 @@ function debounce(fn, delay) {
 }
 
 document.addEventListener('click', closeAllMenus);
-searchInput.addEventListener('input', debounce(() => fetchPage(1), 300));
+searchInput.addEventListener('input', debounce(() => {
+  // keep chip active state in sync with manual search
+  if (tagChipsContainer) {
+    const val = searchInput.value.trim();
+    tagChipsContainer.querySelectorAll('.tag-chip').forEach(c => {
+      c.classList.toggle('is-active', c.dataset.tag === val);
+    });
+  }
+  fetchPage(1);
+}, 300));
 statusFilter.addEventListener('change', () => fetchPage(1));
 sortModeSelect.addEventListener('change', () => fetchPage(1));
+
+if (bulkStatusSelect) {
+  bulkStatusSelect.addEventListener('change', async () => {
+    const status = bulkStatusSelect.value;
+    bulkStatusSelect.value = '';
+    if (status) await bulkChangeStatus(status);
+  });
+}
 
 const checkLinksBtn = document.getElementById('check-links-btn');
 const healthPanel   = document.getElementById('health-panel');
@@ -374,3 +472,4 @@ if (window.LinkNest.initPullToRefresh) {
 }
 
 fetchPage(1).catch(console.error);
+loadTagChips().catch(() => {});

@@ -56,14 +56,37 @@ window.LinkNest = {
   },
 };
 
+async function updateUnreadBadge() {
+  const badge = document.getElementById('unread-badge');
+  if (!badge) return;
+  try {
+    const res = await linkNestApiFetch('/api/stats');
+    if (!res.ok) return;
+    const data = await res.json();
+    const count = data.unread || 0;
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  } catch {
+    // silently ignore — badge is non-critical
+  }
+}
+
+window.LinkNest.updateUnreadBadge = updateUnreadBadge;
+
 window.addEventListener('DOMContentLoaded', () => {
   const logoutButton = document.getElementById('logout-button');
-  if (!logoutButton) return;
-  logoutButton.addEventListener('click', () => {
-    window.LinkNest.logout().catch(() => {
-      window.location.href = '/login.html';
+  if (logoutButton) {
+    logoutButton.addEventListener('click', () => {
+      window.LinkNest.logout().catch(() => {
+        window.location.href = '/login.html';
+      });
     });
-  });
+  }
+  updateUnreadBadge();
 });
 
 if ('serviceWorker' in navigator) {
